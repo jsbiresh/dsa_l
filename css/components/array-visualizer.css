@@ -1,0 +1,147 @@
+/* =========================================
+   ARRAY VISUALIZER
+========================================= */
+
+.array-visualizer {
+    width: 100%;
+    min-height: 220px;
+    padding: 28px 16px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 14px;
+
+    overflow-x: auto;
+}
+
+.array-visualizer-title {
+    width: 100%;
+    margin-bottom: 12px;
+
+    color: var(--text-secondary);
+
+    font-size: 0.75rem;
+    font-weight: 700;
+
+    letter-spacing: 0.15em;
+    text-align: center;
+}
+
+.array-index-row,
+.array-element-row,
+.array-status-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    gap: 10px;
+}
+
+.array-index,
+.array-cell,
+.array-element-status {
+    width: 54px;
+    min-width: 54px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.array-index {
+    color: var(--text-muted);
+
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.array-cell {
+    height: 58px;
+
+    border: 1px solid var(--border-primary);
+    border-radius: 10px;
+
+    background: var(--panel-secondary);
+
+    color: var(--text-primary);
+
+    font-size: 1.1rem;
+    font-weight: 700;
+
+    transition:
+        background-color 180ms ease,
+        border-color 180ms ease,
+        transform 180ms ease,
+        box-shadow 180ms ease;
+}
+
+.array-element-status {
+    min-height: 20px;
+
+    color: var(--text-muted);
+
+    font-size: 0.65rem;
+    font-weight: 600;
+
+    text-align: center;
+}
+
+.array-empty-message {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* Comparison state */
+
+.array-cell--comparing {
+    border-color: var(--status-warning);
+    background: var(--status-warning-background);
+
+    transform: translateY(-5px);
+}
+
+/* Swap state */
+
+.array-cell--swapping {
+    border-color: var(--status-error);
+    background: var(--status-error-background);
+
+    transform: translateY(-8px);
+}
+
+/* Active state */
+
+.array-cell--active {
+    border-color: var(--accent-primary);
+    background: var(--accent-background);
+
+    box-shadow: 0 0 0 2px var(--accent-background);
+}
+
+/* Sorted state */
+
+.array-cell--sorted {
+    border-color: var(--status-success);
+    background: var(--status-success-background);
+
+    color: var(--status-success);
+}
+
+/* Responsive behavior */
+
+@media (max-width: 700px) {
+
+    .array-visualizer {
+        align-items: flex-start;
+    }
+
+    .array-index-row,
+    .array-element-row,
+    .array-status-row {
+        justify-content: flex-start;
+    }
+
+}
