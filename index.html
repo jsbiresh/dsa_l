@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description"
+          content="DSA_L - An interactive visual learning laboratory for data structures and algorithms.">
+
+    <title>DSA_L | Visual Algorithm Laboratory</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+
+<body>
+
+    <div class="app-container">
+
+        <!-- =========================================
+             TOP: BRAIN / QUESTION ANALYSER
+        ========================================== -->
+
+        <header class="brain-header">
+
+            <div class="brand">
+                <div class="brand-icon">L</div>
+
+                <div class="brand-info">
+                    <h1>DSA_L</h1>
+                    <span>Visual Algorithm Laboratory</span>
+                </div>
+            </div>
+
+            <div class="brain-workspace">
+
+                <div class="brain-title">
+                    <span class="status-indicator"></span>
+                    <span>BRAIN</span>
+                    <span class="brain-model">LOCAL AI</span>
+                </div>
+
+                <div class="question-input-wrapper">
+
+                    <textarea
+                        id="questionInput"
+                        placeholder="Paste any DSA question here... (LeetCode, HackerRank, Codeforces, etc.)"
+                        rows="2"
+                    ></textarea>
+
+                    <button id="analyseButton" type="button">
+                        Analyse Question
+                    </button>
+
+                </div>
+
+                <div class="brain-status">
+                    <span id="aiStatus">AI: Not connected</span>
+                    <span id="analysisStatus">Waiting for a question</span>
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- =========================================
+             MAIN APPLICATION WORKSPACE
+        ========================================== -->
+
+        <main class="main-workspace">
+
+            <!-- LEFT: NAVIGATION SIDEBAR -->
+
+            <aside class="sidebar">
+
+                <div class="sidebar-section">
+
+                    <div class="sidebar-heading">
+                        DATA STRUCTURES
+                    </div>
+
+                    <nav id="structureNavigation">
+
+                        <button class="nav-item active" data-structure="array">
+                            <span class="nav-icon">▦</span>
+                            <span>Arrays</span>
+                        </button>
+
+                        <button class="nav-item" data-structure="hashmap">
+                            <span class="nav-icon">▤</span>
+                            <span>HashMaps</span>
+                        </button>
+
+                        <button class="nav-item" data-structure="linked-list">
+                            <span class="nav-icon">⇢</span>
+                            <span>Linked Lists</span>
+                        </button>
+
+                        <button class="nav-item" data-structure="stack">
+                            <span class="nav-icon">▤</span>
+                            <span>Stacks</span>
+                        </button>
+
+                        <button class="nav-item" data-structure="queue">
+                            <span class="nav-icon">⇥</span>
+                            <span>Queues</span>
+                        </button>
+
+                        <button class="nav-item" data-structure="tree">
+                            <span class="nav-icon">⑂</span>
+                            <span>Trees</span>
+                        </button>
+
+                        <button class="nav-item" data-structure="heap">
+                            <span class="nav-icon">⌑</span>
+                            <span>Heaps</span>
+                        </button>
+
+                        <button class="nav-item" data-structure="graph">
+                            <span class="nav-icon">◎</span>
+                            <span>Graphs</span>
+                        </button>
+
+                        <button class="nav-item" data-structure="matrix">
+                            <span class="nav-icon">▦</span>
+                            <span>Matrices</span>
+                        </button>
+
+                        <button class="nav-item" data-structure="trie">
+                            <span class="nav-icon">⑃</span>
+                            <span>Tries</span>
+                        </button>
+
+                    </nav>
+
+                </div>
+
+
+                <div class="sidebar-section">
+
+                    <div class="sidebar-heading">
+                        LEARNING
+                    </div>
+
+                    <nav>
+
+                        <button class="nav-item" data-section="patterns">
+                            <span class="nav-icon">◇</span>
+                            <span>Patterns</span>
+                        </button>
+
+                        <button class="nav-item" data-section="recursion">
+                            <span class="nav-icon">↻</span>
+                            <span>Recursion</span>
+                        </button>
+
+                        <button class="nav-item" data-section="dynamic-programming">
+                            <span class="nav-icon">▧</span>
+                            <span>Dynamic Programming</span>
+                        </button>
+
+                        <button class="nav-item" data-section="training">
+                            <span class="nav-icon">◎</span>
+                            <span>Pattern Training</span>
+                        </button>
+
+                    </nav>
+
+                </div>
+
+
+                <div class="sidebar-footer">
+                    <span class="version-label">DSA_L</span>
+                    <span class="version-number">v0.1.0</span>
+                </div>
+
+            </aside>
+
+
+            <!-- CENTRE: VISUALIZATION CANVAS -->
+
+            <section class="visualization-section">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h2>Visualization Canvas</h2>
+                        <span id="visualizationSubtitle">
+                            Array Visualization
+                        </span>
+                    </div>
+
+                    <div class="canvas-actions">
+
+                        <span class="execution-status" id="executionStatus">
+                            READY
+                        </span>
+
+                        <button id="resetCanvasButton" type="button"
+                                title="Reset visualization">
+                            ↺
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- AI ANALYSIS SUMMARY -->
+
+                <div class="analysis-summary" id="analysisSummary">
+
+                    <div class="analysis-item">
+                        <span>PRIMARY PATTERN</span>
+                        <strong id="primaryPattern">Not detected</strong>
+                    </div>
+
+                    <div class="analysis-item">
+                        <span>DATA STRUCTURE</span>
+                        <strong id="detectedStructure">Array</strong>
+                    </div>
+
+                    <div class="analysis-item">
+                        <span>TIME COMPLEXITY</span>
+                        <strong id="timeComplexity">—</strong>
+                    </div>
+
+                    <div class="analysis-item">
+                        <span>SPACE COMPLEXITY</span>
+                        <strong id="spaceComplexity">—</strong>
+                    </div>
+
+                </div>
+
+
+                <!-- ACTUAL VISUALIZATION AREA -->
+
+                <div class="visualization-canvas" id="visualizationCanvas">
+
+                    <div class="empty-state" id="emptyState">
+
+                        <div class="empty-icon">⌘</div>
+
+                        <h3>Your visual laboratory is ready.</h3>
+
+                        <p>
+                            Paste a DSA question into the Brain panel
+                            or select a data structure to begin.
+                        </p>
+
+                        <span class="empty-hint">
+                            Every algorithm. Every operation. Visually explained.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- VISUALIZATION LEGEND -->
+
+                <div class="visualization-legend">
+
+                    <span>
+                        <i class="legend-dot normal"></i>
+                        Normal
+                    </span>
+
+                    <span>
+                        <i class="legend-dot active"></i>
+                        Active
+                    </span>
+
+                    <span>
+                        <i class="legend-dot comparing"></i>
+                        Comparing
+                    </span>
+
+                    <span>
+                        <i class="legend-dot success"></i>
+                        Completed
+                    </span>
+
+                    <span>
+                        <i class="legend-dot rejected"></i>
+                        Rejected
+                    </span>
+
+                </div>
+
+
+                <!-- EXECUTION CONTROL CENTRE -->
+
+                <div class="execution-controls">
+
+                    <div class="player-buttons">
+
+                        <button id="restartButton" type="button"
+                                title="Restart">
+                            ↺
+                        </button>
+
+                        <button id="previousButton" type="button"
+                                title="Previous step">
+                            ◀
+                        </button>
+
+                        <button id="playButton" type="button"
+                                class="play-button"
+                                title="Play">
+                            ▶
+                        </button>
+
+                        <button id="nextButton" type="button"
+                                title="Next step">
+                            ▶
+                        </button>
+
+                        <button id="pauseButton" type="button"
+                                title="Pause">
+                            Ⅱ
+                        </button>
+
+                    </div>
+
+
+                    <div class="progress-container">
+
+                        <div class="progress-information">
+                            <span>EXECUTION PROGRESS</span>
+                            <span id="stepCounter">0 / 0</span>
+                        </div>
+
+                        <div class="progress-track">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+
+                    </div>
+
+
+                    <div class="slider-controls">
+
+                        <div class="slider-control">
+
+                            <label for="speedSlider">
+                                SPEED
+                                <strong id="speedValue">1.0x</strong>
+                            </label>
+
+                            <input
+                                type="range"
+                                id="speedSlider"
+                                min="0.25"
+                                max="3"
+                                step="0.25"
+                                value="1"
+                            >
+
+                        </div>
+
+
+                        <div class="slider-control">
+
+                            <label for="sizeSlider">
+                                DATA SIZE
+                                <strong id="sizeValue">10</strong>
+                            </label>
+
+                            <input
+                                type="range"
+                                id="sizeSlider"
+                                min="3"
+                                max="50"
+                                step="1"
+                                value="10"
+                            >
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- RIGHT: JAVASCRIPT CODE PANEL -->
+
+            <aside class="code-section">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h2>Code Execution</h2>
+                        <span>JavaScript</span>
+                    </div>
+
+                    <div class="code-language">
+                        JS
+                    </div>
+
+                </div>
+
+
+                <div class="code-toolbar">
+
+                    <span id="codeFileName">
+                        solution.js
+                    </span>
+
+                    <span id="codeExecutionStatus">
+                        READY
+                    </span>
+
+                </div>
+
+
+                <div class="code-editor" id="codeEditor">
+
+                    <div class="code-empty-state">
+                        <span>JS</span>
+                        <p>
+                            Algorithm code will appear here.
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="code-footer">
+
+                    <span id="currentLine">
+                        Line: —
+                    </span>
+
+                    <span>
+                        JavaScript
+                    </span>
+
+                </div>
+
+            </aside>
+
+        </main>
+
+
+        <!-- =========================================
+             BOTTOM: INSPECTOR / DEBUGGER
+        ========================================== -->
+
+        <section class="inspector-section">
+
+            <div class="inspector-header">
+
+                <h3>Execution Inspector</h3>
+
+                <span id="inspectorStatus">
+                    WAITING FOR EXECUTION
+                </span>
+
+            </div>
+
+
+            <div class="inspector-grid">
+
+                <!-- VARIABLES -->
+
+                <div class="inspector-panel">
+
+                    <h4>VARIABLES</h4>
+
+                    <div id="variablesPanel">
+                        <span class="inspector-placeholder">
+                            No variables available.
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- MEMORY -->
+
+                <div class="inspector-panel">
+
+                    <h4>MEMORY INSPECTOR</h4>
+
+                    <div id="memoryPanel">
+                        <span class="inspector-placeholder">
+                            Memory information will appear here.
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- OPERATION EXPLANATION -->
+
+                <div class="inspector-panel">
+
+                    <h4>WHAT IS HAPPENING?</h4>
+
+                    <div id="operationPanel">
+                        <span class="inspector-placeholder">
+                            Execute an operation to see its explanation.
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <!-- COMPLEXITY -->
+
+                <div class="inspector-panel">
+
+                    <h4>OPERATION COUNTERS</h4>
+
+                    <div id="complexityPanel">
+
+                        <div class="counter-row">
+                            <span>Comparisons</span>
+                            <strong id="comparisonCount">0</strong>
+                        </div>
+
+                        <div class="counter-row">
+                            <span>Array accesses</span>
+                            <strong id="accessCount">0</strong>
+                        </div>
+
+                        <div class="counter-row">
+                            <span>Swaps</span>
+                            <strong id="swapCount">0</strong>
+                        </div>
+
+                        <div class="counter-row">
+                            <span>Assignments</span>
+                            <strong id="assignmentCount">0</strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- APPLICATION FOOTER -->
+
+        <footer class="app-footer">
+
+            <span>DSA_L — Visual Algorithm Laboratory</span>
+
+            <span>
+                Local Environment |
+                <span id="appVersion">v0.1.0</span>
+            </span>
+
+        </footer>
+
+    </div>
+
+
+    <!-- Application Entry Point -->
+
+    <script type="module" src="js/app.js"></script>
+
+</body>
+
+</html>

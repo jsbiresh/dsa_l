@@ -1,0 +1,194 @@
+/* ============================================
+   DSA_L — DESIGN SYSTEM
+   File: css/theme.css
+============================================ */
+
+
+/* ============================================
+   1. COLOR SYSTEM
+============================================ */
+
+:root {
+
+    /* Application backgrounds */
+
+    --bg-primary: #101216;
+    --bg-secondary: #15181e;
+    --bg-tertiary: #1b1f27;
+
+    /* Panel backgrounds */
+
+    --panel-primary: #181c23;
+    --panel-secondary: #1e232c;
+    --panel-hover: #252b35;
+
+    /* Borders */
+
+    --border-primary: #2a303a;
+    --border-secondary: #343c48;
+
+    /* Text */
+
+    --text-primary: #e8ecf2;
+    --text-secondary: #a0a9b7;
+    --text-muted: #6f7a89;
+
+    /* Accent */
+
+    --accent-primary: #6b9cff;
+    --accent-hover: #86adff;
+    --accent-background: rgba(107, 156, 255, 0.12);
+
+    /* Status colors */
+
+    --status-success: #65c995;
+    --status-warning: #e6b566;
+    --status-error: #e77b83;
+    --status-info: #73b9e8;
+
+    /* Visualization colors */
+
+    --viz-normal: #46566d;
+    --viz-active: #e6bd64;
+    --viz-comparing: #e99a57;
+    --viz-success: #65c995;
+    --viz-rejected: #e77b83;
+    --viz-reference: #a58bea;
+
+    /* Code editor */
+
+    --code-background: #13161c;
+    --code-line-highlight: rgba(107, 156, 255, 0.13);
+    --code-line-border: #6b9cff;
+
+    --code-keyword: #c792ea;
+    --code-function: #82aaff;
+    --code-string: #c3e88d;
+    --code-number: #f78c6c;
+    --code-comment: #697586;
+    --code-variable: #e8ecf2;
+    --code-operator: #89ddff;
+
+    /* Dimensions */
+
+    --header-height: 120px;
+    --sidebar-width: 210px;
+    --code-panel-width: 36%;
+    --inspector-height: 190px;
+
+    /* Typography */
+
+    --font-primary: 'Inter', 'Segoe UI', sans-serif;
+    --font-code: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* Font sizes */
+
+    --font-xs: 11px;
+    --font-sm: 12px;
+    --font-md: 14px;
+    --font-lg: 16px;
+    --font-xl: 20px;
+    --font-2xl: 24px;
+
+    /* Border radius */
+
+    --radius-sm: 4px;
+    --radius-md: 7px;
+    --radius-lg: 10px;
+
+    /* Spacing */
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+
+    /* Animation */
+
+    --transition-fast: 120ms ease;
+    --transition-normal: 200ms ease;
+    --transition-slow: 300ms ease;
+
+}
+
+
+/* ============================================
+   2. LIGHT THEME VARIABLES
+============================================ */
+
+[data-theme="light"] {
+
+    --bg-primary: #f2f4f7;
+    --bg-secondary: #e9edf2;
+    --bg-tertiary: #dfe4eb;
+
+    --panel-primary: #ffffff;
+    --panel-secondary: #f5f7fa;
+    --panel-hover: #edf1f6;
+
+    --border-primary: #d9dfe8;
+    --border-secondary: #c7cfda;
+
+    --text-primary: #202936;
+    --text-secondary: #566273;
+    --text-muted: #7b8796;
+
+    --accent-primary: #3979dc;
+    --accent-hover: #2867c7;
+    --accent-background: rgba(57, 121, 220, 0.10);
+
+    --code-background: #f5f7fa;
+    --code-line-highlight: rgba(57, 121, 220, 0.10);
+    --code-line-border: #3979dc;
+
+}
+
+
+/* ============================================
+   3. VISUALIZATION STATE COLORS
+============================================ */
+
+:root {
+
+    --state-idle: var(--viz-normal);
+    --state-active: var(--viz-active);
+    --state-comparing: var(--viz-comparing);
+    --state-completed: var(--viz-success);
+    --state-rejected: var(--viz-rejected);
+
+}
+
+
+/* ============================================
+   4. SHADOWS
+============================================ */
+
+:root {
+
+    --shadow-subtle:
+        0 1px 3px rgba(0, 0, 0, 0.15);
+
+    --shadow-panel:
+        0 2px 8px rgba(0, 0, 0, 0.12);
+
+}
+
+
+/* ============================================
+   5. GLOBAL TRANSITIONS
+============================================ */
+
+:root {
+
+    --transition-panel:
+        background-color var(--transition-normal),
+        border-color var(--transition-normal);
+
+    --transition-interaction:
+        background-color var(--transition-fast),
+        color var(--transition-fast),
+        border-color var(--transition-fast);
+
+}
