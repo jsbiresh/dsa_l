@@ -1,0 +1,303 @@
+/* ============================================
+   DSA_L — GLOBAL BASE STYLES
+   File: css/base.css
+============================================ */
+
+
+/* ============================================
+   1. CSS RESET
+============================================ */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+
+/* ============================================
+   2. HTML & BODY
+============================================ */
+
+html {
+    min-width: 320px;
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100vh;
+
+    background: var(--bg-primary);
+    color: var(--text-primary);
+
+    font-family: var(--font-primary);
+    font-size: var(--font-md);
+    line-height: 1.5;
+
+    overflow-x: hidden;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* ============================================
+   3. TYPOGRAPHY
+============================================ */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    color: var(--text-primary);
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+p {
+    color: var(--text-secondary);
+}
+
+small {
+    font-size: var(--font-xs);
+}
+
+code,
+pre,
+kbd {
+    font-family: var(--font-code);
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+
+/* ============================================
+   4. BUTTON RESET
+============================================ */
+
+button {
+    border: none;
+    outline: none;
+
+    background: transparent;
+    color: inherit;
+
+    cursor: pointer;
+
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+
+/* ============================================
+   5. INPUTS & TEXTAREAS
+============================================ */
+
+input,
+textarea,
+select {
+    color: var(--text-primary);
+    background: var(--panel-secondary);
+
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+
+    outline: none;
+
+    transition:
+        border-color var(--transition-fast),
+        background-color var(--transition-fast);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--accent-primary);
+}
+
+textarea {
+    resize: vertical;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+}
+
+
+/* ============================================
+   6. RANGE SLIDERS
+============================================ */
+
+input[type="range"] {
+    width: 100%;
+    height: 5px;
+
+    appearance: none;
+    -webkit-appearance: none;
+
+    background: var(--border-secondary);
+    border: none;
+    border-radius: 20px;
+
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+
+    width: 15px;
+    height: 15px;
+
+    background: var(--accent-primary);
+
+    border: 2px solid var(--bg-secondary);
+    border-radius: 50%;
+
+    cursor: grab;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+
+    background: var(--accent-primary);
+
+    border: 2px solid var(--bg-secondary);
+    border-radius: 50%;
+
+    cursor: grab;
+}
+
+
+/* ============================================
+   7. LINKS
+============================================ */
+
+a {
+    color: var(--accent-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--accent-hover);
+}
+
+
+/* ============================================
+   8. SCROLLBARS
+============================================ */
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color:
+        var(--border-secondary)
+        transparent;
+}
+
+::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-secondary);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+
+/* ============================================
+   9. SELECTION
+============================================ */
+
+::selection {
+    background: var(--accent-background);
+    color: var(--text-primary);
+}
+
+
+/* ============================================
+   10. FOCUS ACCESSIBILITY
+============================================ */
+
+:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 3px;
+}
+
+
+/* ============================================
+   11. UTILITY CLASSES
+============================================ */
+
+.hidden {
+    display: none !important;
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+.text-secondary {
+    color: var(--text-secondary);
+}
+
+.text-accent {
+    color: var(--accent-primary);
+}
+
+.text-success {
+    color: var(--status-success);
+}
+
+.text-warning {
+    color: var(--status-warning);
+}
+
+.text-error {
+    color: var(--status-error);
+}
+
+.mono {
+    font-family: var(--font-code);
+}
+
+
+/* ============================================
+   12. REDUCED MOTION ACCESSIBILITY
+============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+}

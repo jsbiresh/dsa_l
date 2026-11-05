@@ -1,0 +1,750 @@
+/* ============================================
+   DSA_L — ANIMATION SYSTEM
+   File: css/animations.css
+============================================ */
+
+
+/* ============================================
+   1. GENERAL ANIMATION UTILITIES
+============================================ */
+
+.animate-fade-in {
+    animation: fadeIn 250ms ease both;
+}
+
+.animate-slide-up {
+    animation: slideUp 250ms ease both;
+}
+
+.animate-pulse {
+    animation: softPulse 1.5s ease-in-out infinite;
+}
+
+
+/* ============================================
+   2. KEYFRAMES
+============================================ */
+
+@keyframes fadeIn {
+
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+
+}
+
+
+@keyframes slideUp {
+
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+
+@keyframes softPulse {
+
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.65;
+    }
+
+}
+
+
+/* ============================================
+   3. ARRAY ELEMENT ANIMATIONS
+============================================ */
+
+.array-cell {
+
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 48px;
+    min-height: 65px;
+
+    padding: 8px;
+
+    background: var(--panel-secondary);
+
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+
+    transition:
+        background-color 180ms ease,
+        border-color 180ms ease,
+        transform 180ms ease;
+
+}
+
+
+.array-cell.is-active {
+
+    background: rgba(230, 189, 100, 0.15);
+
+    border-color: var(--viz-active);
+
+    transform: translateY(-4px);
+
+}
+
+
+.array-cell.is-comparing {
+
+    background: rgba(233, 154, 87, 0.15);
+
+    border-color: var(--viz-comparing);
+
+}
+
+
+.array-cell.is-completed {
+
+    background: rgba(101, 201, 149, 0.13);
+
+    border-color: var(--viz-success);
+
+}
+
+
+.array-cell.is-rejected {
+
+    background: rgba(231, 123, 131, 0.13);
+
+    border-color: var(--viz-rejected);
+
+}
+
+
+.array-cell.is-swapping {
+
+    animation: arraySwap 220ms ease;
+
+}
+
+
+@keyframes arraySwap {
+
+    0% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-9px);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+
+}
+
+
+/* ARRAY INDEX */
+
+.array-index {
+
+    color: var(--text-muted);
+
+    font-family: var(--font-code);
+    font-size: 10px;
+
+}
+
+
+/* ARRAY VALUE */
+
+.array-value {
+
+    color: var(--text-primary);
+
+    font-family: var(--font-code);
+    font-size: 16px;
+    font-weight: 600;
+
+}
+
+
+/* ARRAY MEMORY ADDRESS */
+
+.array-address {
+
+    margin-top: 5px;
+
+    color: var(--text-muted);
+
+    font-family: var(--font-code);
+    font-size: 9px;
+
+}
+
+
+/* ============================================
+   4. POINTER ANIMATIONS
+============================================ */
+
+.pointer-marker {
+
+    position: relative;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 4px 8px;
+
+    color: var(--viz-active);
+
+    font-family: var(--font-code);
+    font-size: 11px;
+    font-weight: 700;
+
+    transition:
+        left 200ms ease,
+        top 200ms ease,
+        transform 200ms ease;
+
+}
+
+
+.pointer-marker.is-moving {
+
+    animation: pointerMove 200ms ease;
+
+}
+
+
+@keyframes pointerMove {
+
+    0% {
+        transform: translateY(4px);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+
+}
+
+
+/* ============================================
+   5. HASHMAP ANIMATIONS
+============================================ */
+
+.hash-bucket {
+
+    padding: 12px;
+
+    background: var(--panel-secondary);
+
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+
+    transition:
+        background-color 180ms ease,
+        border-color 180ms ease;
+
+}
+
+
+.hash-bucket.is-active {
+
+    background: var(--accent-background);
+
+    border-color: var(--accent-primary);
+
+}
+
+
+.hash-entry {
+
+    padding: 7px 10px;
+
+    background: var(--panel-hover);
+
+    border-radius: var(--radius-sm);
+
+    animation: fadeIn 180ms ease;
+
+}
+
+
+.hash-entry.is-collision {
+
+    border: 1px solid var(--viz-comparing);
+
+}
+
+
+.hash-entry.is-inserting {
+
+    animation: entryInsert 220ms ease;
+
+}
+
+
+@keyframes entryInsert {
+
+    from {
+        opacity: 0;
+        transform: translateY(-7px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+
+/* ============================================
+   6. STACK AND QUEUE ANIMATIONS
+============================================ */
+
+.stack-item,
+.queue-item {
+
+    padding: 10px 15px;
+
+    background: var(--panel-secondary);
+
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-sm);
+
+    font-family: var(--font-code);
+
+    transition:
+        background-color 180ms ease,
+        border-color 180ms ease;
+
+}
+
+
+.stack-item.is-entering {
+
+    animation: stackPush 220ms ease;
+
+}
+
+
+.stack-item.is-leaving {
+
+    animation: stackPop 180ms ease forwards;
+
+}
+
+
+@keyframes stackPush {
+
+    from {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+}
+
+
+@keyframes stackPop {
+
+    to {
+        opacity: 0;
+        transform: translateY(-12px);
+    }
+
+}
+
+
+.queue-item.is-entering {
+
+    animation: queueEnter 220ms ease;
+
+}
+
+
+.queue-item.is-leaving {
+
+    animation: queueLeave 180ms ease forwards;
+
+}
+
+
+@keyframes queueEnter {
+
+    from {
+        opacity: 0;
+        transform: translateX(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+}
+
+
+@keyframes queueLeave {
+
+    to {
+        opacity: 0;
+        transform: translateX(-15px);
+    }
+
+}
+
+
+/* ============================================
+   7. LINKED LIST NODE ANIMATIONS
+============================================ */
+
+.list-node {
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 65px;
+    min-height: 48px;
+
+    padding: 8px;
+
+    background: var(--panel-secondary);
+
+    border: 1px solid var(--border-secondary);
+    border-radius: var(--radius-md);
+
+    transition:
+        background-color 180ms ease,
+        border-color 180ms ease,
+        transform 180ms ease;
+
+}
+
+
+.list-node.is-active {
+
+    background: var(--accent-background);
+
+    border-color: var(--accent-primary);
+
+    transform: translateY(-3px);
+
+}
+
+
+.list-node.is-inserting {
+
+    animation: nodeInsert 250ms ease;
+
+}
+
+
+@keyframes nodeInsert {
+
+    from {
+        opacity: 0;
+        transform: scale(0.85);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+}
+
+
+/* ============================================
+   8. TREE NODE ANIMATIONS
+============================================ */
+
+.tree-node {
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 42px;
+    height: 42px;
+
+    background: var(--panel-secondary);
+
+    border: 1px solid var(--border-secondary);
+    border-radius: 50%;
+
+    font-family: var(--font-code);
+
+    transition:
+        background-color 180ms ease,
+        border-color 180ms ease,
+        transform 180ms ease;
+
+}
+
+
+.tree-node.is-active {
+
+    background: rgba(230, 189, 100, 0.15);
+
+    border-color: var(--viz-active);
+
+    transform: scale(1.1);
+
+}
+
+
+.tree-node.is-visited {
+
+    background: rgba(101, 201, 149, 0.13);
+
+    border-color: var(--viz-success);
+
+}
+
+
+/* ============================================
+   9. GRAPH ANIMATIONS
+============================================ */
+
+.graph-node {
+
+    transition:
+        fill 180ms ease,
+        stroke 180ms ease,
+        transform 180ms ease;
+
+}
+
+
+.graph-node.is-active {
+
+    stroke: var(--viz-active);
+    stroke-width: 3;
+
+}
+
+
+.graph-node.is-visited {
+
+    stroke: var(--viz-success);
+    stroke-width: 2.5;
+
+}
+
+
+.graph-edge {
+
+    transition:
+        stroke 180ms ease,
+        stroke-width 180ms ease;
+
+}
+
+
+.graph-edge.is-active {
+
+    stroke: var(--viz-active);
+    stroke-width: 3;
+
+}
+
+
+.graph-edge.is-visited {
+
+    stroke: var(--viz-success);
+    stroke-width: 2.5;
+
+}
+
+
+/* ============================================
+   10. MATRIX CELL ANIMATIONS
+============================================ */
+
+.matrix-cell {
+
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease;
+
+}
+
+
+.matrix-cell.is-active {
+
+    background: rgba(230, 189, 100, 0.18);
+
+    border-color: var(--viz-active);
+
+}
+
+
+.matrix-cell.is-visited {
+
+    background: rgba(101, 201, 149, 0.13);
+
+    border-color: var(--viz-success);
+
+}
+
+
+/* ============================================
+   11. CODE EXECUTION ANIMATIONS
+============================================ */
+
+.code-line {
+
+    min-height: 23px;
+
+    display: flex;
+    align-items: flex-start;
+
+    transition:
+        background-color 120ms ease;
+
+}
+
+
+.code-line.is-current {
+
+    background: var(--code-line-highlight);
+
+    border-left: 3px solid var(--code-line-border);
+
+}
+
+
+.code-line.is-executed {
+
+    color: var(--text-muted);
+
+}
+
+
+.code-line.is-breakpoint {
+
+    background: rgba(231, 123, 131, 0.10);
+
+}
+
+
+.code-line-number {
+
+    width: 42px;
+    flex-shrink: 0;
+
+    padding-right: 12px;
+
+    color: var(--text-muted);
+
+    text-align: right;
+
+    user-select: none;
+
+}
+
+
+.code-line-content {
+
+    min-width: 0;
+
+    padding-right: 12px;
+
+    white-space: pre;
+
+}
+
+
+/* ============================================
+   12. MEMORY INSPECTOR ANIMATIONS
+============================================ */
+
+.memory-item {
+
+    padding: 7px 10px;
+
+    background: var(--panel-secondary);
+
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+
+    animation: fadeIn 180ms ease;
+
+}
+
+
+.memory-item.is-allocated {
+
+    border-color: var(--viz-success);
+
+}
+
+
+.memory-item.is-updated {
+
+    animation: memoryUpdate 250ms ease;
+
+}
+
+
+@keyframes memoryUpdate {
+
+    0%, 100% {
+        background: var(--panel-secondary);
+    }
+
+    50% {
+        background: rgba(107, 156, 255, 0.18);
+    }
+
+}
+
+
+/* ============================================
+   13. REDUCED MOTION
+============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+
+        animation-duration: 0.01ms !important;
+
+        animation-iteration-count: 1 !important;
+
+        transition-duration: 0.01ms !important;
+
+    }
+
+}
