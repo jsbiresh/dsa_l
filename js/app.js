@@ -1,409 +1,1035 @@
 /* ============================================
    DSA_L — APPLICATION ENTRY POINT
-   File: js/app.js
 ============================================ */
 
+import { ArrayVisualizer } from "./visualizers/array-visualizer.js";
+
+import { ExecutionController } from "./core/execution-controller.js";
+
+import { createBubbleSortTrace } from "./algorithms/bubble-sort.js";
+
+import { analyzeDSARequest } from "./ai/problem-analyzer.js";
+import { checkOllamaConnection } from "./ai/ollama-client.js";
 
 /* ============================================
    1. APPLICATION CONFIGURATION
 ============================================ */
 
 const APP_CONFIG = {
-    name: "DSA_L",
-    version: "0.1.0",
-    serverPort: 4888,
-    defaultSpeed: 1,
-    defaultSize: 10
+  name: "DSA_L",
+  version: "0.1.0",
+  serverPort: 4888,
+  defaultSpeed: 1,
+  defaultSize: 10,
 };
-
 
 /* ============================================
    2. APPLICATION STATE
 ============================================ */
 
 const appState = {
+  selectedStructure: "array",
 
-    selectedStructure: "array",
+  selectedSection: null,
 
-    selectedSection: null,
+  animationSpeed: APP_CONFIG.defaultSpeed,
 
-    animationSpeed: APP_CONFIG.defaultSpeed,
+  dataSize: APP_CONFIG.defaultSize,
 
-    dataSize: APP_CONFIG.defaultSize,
+  isPlaying: false,
 
-    isPlaying: false,
+  currentStep: 0,
 
-    currentStep: 0,
+  totalSteps: 0,
 
-    totalSteps: 0,
+  theme: "dark",
 
-    theme: "dark"
-
+  currentAlgorithm: null,
 };
-
 
 /* ============================================
    3. DOM ELEMENT REFERENCES
 ============================================ */
 
 const elements = {
+  questionInput: document.getElementById("questionInput"),
+  analyseButton: document.getElementById("analyseButton"),
+  aiStatus: document.getElementById("aiStatus"),
+  analysisStatus: document.getElementById("analysisStatus"),
 
-    // Brain
+  visualizationCanvas: document.getElementById("visualizationCanvas"),
+  visualizationSubtitle: document.getElementById("visualizationSubtitle"),
+  executionStatus: document.getElementById("executionStatus"),
+  emptyState: document.getElementById("emptyState"),
 
-    questionInput: document.getElementById("questionInput"),
-    analyseButton: document.getElementById("analyseButton"),
-    aiStatus: document.getElementById("aiStatus"),
-    analysisStatus: document.getElementById("analysisStatus"),
+  structureNavigation: document.getElementById("structureNavigation"),
 
-    // Visualization
+  codeEditor: document.getElementById("codeEditor"),
+  codeExecutionStatus: document.getElementById("codeExecutionStatus"),
+  codeFileName: document.getElementById("codeFileName"),
+  currentLine: document.getElementById("currentLine"),
 
-    visualizationCanvas:
-        document.getElementById("visualizationCanvas"),
+  playButton: document.getElementById("playButton"),
+  pauseButton: document.getElementById("pauseButton"),
+  nextButton: document.getElementById("nextButton"),
+  previousButton: document.getElementById("previousButton"),
+  restartButton: document.getElementById("restartButton"),
 
-    visualizationSubtitle:
-        document.getElementById("visualizationSubtitle"),
+  speedSlider: document.getElementById("speedSlider"),
+  sizeSlider: document.getElementById("sizeSlider"),
 
-    executionStatus:
-        document.getElementById("executionStatus"),
+  speedValue: document.getElementById("speedValue"),
+  sizeValue: document.getElementById("sizeValue"),
 
-    emptyState:
-        document.getElementById("emptyState"),
+  stepCounter: document.getElementById("stepCounter"),
+  progressFill: document.getElementById("progressFill"),
 
-    // Navigation
+  inspectorStatus: document.getElementById("inspectorStatus"),
 
-    structureNavigation:
-        document.getElementById("structureNavigation"),
+  runBubbleSortButton: document.getElementById("runBubbleSortButton"),
 
-    // Code
+  primaryPattern: document.getElementById("primaryPattern"),
+  detectedStructure: document.getElementById("detectedStructure"),
+  timeComplexity: document.getElementById("timeComplexity"),
+  spaceComplexity: document.getElementById("spaceComplexity"),
 
-    codeEditor:
-        document.getElementById("codeEditor"),
+  variablesPanel: document.getElementById("variablesPanel"),
+  memoryPanel: document.getElementById("memoryPanel"),
+  operationPanel: document.getElementById("operationPanel"),
 
-    codeExecutionStatus:
-        document.getElementById("codeExecutionStatus"),
+  comparisonCount: document.getElementById("comparisonCount"),
+  accessCount: document.getElementById("accessCount"),
+  swapCount: document.getElementById("swapCount"),
+  assignmentCount: document.getElementById("assignmentCount"),
 
-    // Execution controls
+    aiAnalysisPanel: document.getElementById("aiAnalysisPanel"),
+  analysisConfidence: document.getElementById("analysisConfidence"),
+  analysisRequestSummary: document.getElementById("analysisRequestSummary"),
+  analysisKeywords: document.getElementById("analysisKeywords"),
+  analysisClues: document.getElementById("analysisClues"),
+  analysisPatterns: document.getElementById("analysisPatterns"),
 
-    playButton:
-        document.getElementById("playButton"),
-
-    pauseButton:
-        document.getElementById("pauseButton"),
-
-    nextButton:
-        document.getElementById("nextButton"),
-
-    previousButton:
-        document.getElementById("previousButton"),
-
-    restartButton:
-        document.getElementById("restartButton"),
-
-    speedSlider:
-        document.getElementById("speedSlider"),
-
-    sizeSlider:
-        document.getElementById("sizeSlider"),
-
-    speedValue:
-        document.getElementById("speedValue"),
-
-    sizeValue:
-        document.getElementById("sizeValue"),
-
-    // Progress
-
-    stepCounter:
-        document.getElementById("stepCounter"),
-
-    progressFill:
-        document.getElementById("progressFill"),
-
-    // Inspector
-
-    inspectorStatus:
-        document.getElementById("inspectorStatus")
-
+  selectedApproachPanel: document.getElementById("selectedApproachPanel"),
+selectedApproachTitle: document.getElementById("selectedApproachTitle"),
+selectedApproachApplicability: document.getElementById("selectedApproachApplicability"),
+selectedApproachReason: document.getElementById("selectedApproachReason"),
+selectedApproachConditionsWrapper: document.getElementById("selectedApproachConditionsWrapper"),
+selectedApproachConditions: document.getElementById("selectedApproachConditions"),
+approachDataStructures: document.getElementById("approachDataStructures"),
+visualizationFocusStatus: document.getElementById("visualizationFocusStatus"),
+  analysisStructures: document.getElementById("analysisStructures"),
+  analysisReasoning: document.getElementById("analysisReasoning"),
+  analysisClarification: document.getElementById("analysisClarification"),
+  analysisClarificationQuestion: document.getElementById("analysisClarificationQuestion"),
+  approveAnalysisButton: document.getElementById("approveAnalysisButton"),
+  approvalStatus: document.getElementById("approvalStatus"),
 };
-
+let currentAnalysis = null;
+let selectedApproachIndex = -1;
+let selectedVisualizationFocus = null;
 
 /* ============================================
-   4. APPLICATION INITIALIZATION
+   4. CORE COMPONENTS
+============================================ */
+
+const arrayVisualizer = new ArrayVisualizer(elements.visualizationCanvas);
+
+const executionController = new ExecutionController(handleExecutionStep);
+
+/* ============================================
+   5. APPLICATION INITIALIZATION
 ============================================ */
 
 function initializeApp() {
+  initializeNavigation();
 
-    console.log("--------------------------------");
-    console.log("DSA_L INITIALIZING");
-    console.log("--------------------------------");
+  initializeSliders();
 
-    initializeNavigation();
+  initializeExecutionControls();
 
-    initializeSliders();
+  initializeBrain();
 
-    initializeExecutionControls();
+  initializeTheme();
 
-    initializeBrain();
+  initializeAlgorithmDemo();
 
-    initializeTheme();
+  updateApplicationVersion();
 
-    updateApplicationVersion();
-
-    console.log("DSA_L successfully initialized.");
-
-    console.log("Application configuration:", APP_CONFIG);
-
-    console.log("Application state:", appState);
-
+  console.log("DSA_L initialized successfully.");
 }
 
-
 /* ============================================
-   5. NAVIGATION
+   6. NAVIGATION
 ============================================ */
 
 function initializeNavigation() {
+  const navigationButtons = document.querySelectorAll(".nav-item");
 
-    const navigationButtons =
-        document.querySelectorAll(".nav-item");
+  navigationButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      navigationButtons.forEach((item) => {
+        item.classList.remove("active");
+      });
 
-    navigationButtons.forEach(button => {
+      button.classList.add("active");
 
-        button.addEventListener("click", () => {
+      const structure = button.dataset.structure;
+      const section = button.dataset.section;
 
-            navigationButtons.forEach(item => {
-                item.classList.remove("active");
-            });
+      if (structure) {
+        appState.selectedStructure = structure;
+        appState.selectedSection = null;
 
-            button.classList.add("active");
+        elements.visualizationSubtitle.textContent =
+          structure
+            .split("-")
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ") + " Visualization";
+      }
 
-            const structure = button.dataset.structure;
+      if (section) {
+        appState.selectedSection = section;
 
-            const section = button.dataset.section;
-
-            if (structure) {
-
-                appState.selectedStructure = structure;
-
-                appState.selectedSection = null;
-
-                const formattedName = structure
-                    .split("-")
-                    .map(word =>
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                    )
-                    .join(" ");
-
-                elements.visualizationSubtitle.textContent =
-                    `${formattedName} Visualization`;
-
-                console.log("Selected structure:", structure);
-
-            }
-
-            if (section) {
-
-                appState.selectedSection = section;
-
-                console.log("Selected learning section:", section);
-
-                elements.visualizationSubtitle.textContent =
-                    section
-                        .split("-")
-                        .map(word =>
-                            word.charAt(0).toUpperCase() + word.slice(1)
-                        )
-                        .join(" ");
-
-            }
-
-        });
-
+        elements.visualizationSubtitle.textContent = section
+          .split("-")
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(" ");
+      }
     });
-
+  });
 }
 
-
 /* ============================================
-   6. SLIDER INITIALIZATION
+   7. SLIDERS
 ============================================ */
 
 function initializeSliders() {
+  elements.speedSlider.addEventListener("input", (event) => {
+    const speed = Number(event.target.value);
 
-    // Animation speed
+    appState.animationSpeed = speed;
 
-    elements.speedSlider.addEventListener("input", event => {
-
-        const speed = Number(event.target.value);
-
-        appState.animationSpeed = speed;
-
-        elements.speedValue.textContent =
-            `${speed.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")}x`;
-
-    });
-
-
-    // Data structure size
-
-    elements.sizeSlider.addEventListener("input", event => {
-
-        const size = Number(event.target.value);
-
-        appState.dataSize = size;
-
-        elements.sizeValue.textContent = size;
-
-    });
-
-
-    // Initial values
+    executionController.setSpeed(speed);
 
     elements.speedValue.textContent =
-        `${appState.animationSpeed.toFixed(1)}x`;
+      speed.toFixed(2).replace(/0+$/, "").replace(/\.$/, "") + "x";
+  });
 
-    elements.sizeValue.textContent =
-        appState.dataSize;
+  elements.sizeSlider.addEventListener("input", (event) => {
+    appState.dataSize = Number(event.target.value);
 
+    elements.sizeValue.textContent = appState.dataSize;
+  });
+
+  elements.speedValue.textContent = appState.animationSpeed.toFixed(1) + "x";
+
+  elements.sizeValue.textContent = appState.dataSize;
 }
 
-
 /* ============================================
-   7. EXECUTION CONTROL INITIALIZATION
+   8. EXECUTION CONTROLS
 ============================================ */
 
 function initializeExecutionControls() {
+  elements.playButton.addEventListener("click", () => {
+    if (!appState.currentAlgorithm) {
+      return;
+    }
 
-    elements.playButton.addEventListener("click", () => {
+    executionController.play();
 
-        setExecutionMessage(
-            "Execution engine is being developed."
-        );
+    appState.isPlaying = true;
 
-    });
+    elements.executionStatus.textContent = "PLAYING";
+  });
 
+  elements.pauseButton.addEventListener("click", () => {
+    executionController.pause();
 
-    elements.pauseButton.addEventListener("click", () => {
+    appState.isPlaying = false;
 
-        setExecutionMessage(
-            "No active execution to pause."
-        );
+    elements.executionStatus.textContent = "PAUSED";
+  });
 
-    });
+  elements.nextButton.addEventListener("click", async () => {
+    if (!appState.currentAlgorithm) {
+      return;
+    }
 
+    await executionController.next();
+  });
 
-    elements.nextButton.addEventListener("click", () => {
+  elements.previousButton.addEventListener("click", async () => {
+    if (!appState.currentAlgorithm) {
+      return;
+    }
 
-        setExecutionMessage(
-            "Step execution will be available with the execution engine."
-        );
+    await executionController.previous();
+  });
 
-    });
+  elements.restartButton.addEventListener("click", async () => {
+    if (!appState.currentAlgorithm) {
+      return;
+    }
 
+    await executionController.restart();
 
-    elements.previousButton.addEventListener("click", () => {
-
-        setExecutionMessage(
-            "Step history will be available with the state recorder."
-        );
-
-    });
-
-
-    elements.restartButton.addEventListener("click", () => {
-
-        appState.currentStep = 0;
-
-        elements.stepCounter.textContent = "0 / 0";
-
-        elements.progressFill.style.width = "0%";
-
-        setExecutionMessage(
-            "Execution position reset."
-        );
-
-    });
-
+    appState.isPlaying = false;
+  });
 }
 
+/* ============================================
+   9. ALGORITHM DEMO
+============================================ */
 
-function setExecutionMessage(message) {
+function initializeAlgorithmDemo() {
+  elements.runBubbleSortButton.addEventListener("click", loadBubbleSortDemo);
+}
+
+function loadBubbleSortDemo() {
+  try {
+    executionController.pause();
+
+    appState.isPlaying = false;
+
+    const inputArray = [5, 3, 8, 2];
+
+    // Generate deterministic execution history.
+    const trace = createBubbleSortTrace(inputArray);
+
+    appState.currentAlgorithm = trace;
+
+    appState.totalSteps = trace.steps.length;
+
+// Initialize the execution engine.
+executionController.initialize(
+    trace.algorithmName,
+    trace.initialState
+);
+
+// Register every recorded algorithm step.
+trace.steps.forEach(step => {
+
+    executionController.recordStep(step);
+
+});
+
+// Return execution to the initial state.
+executionController.restart();
+
+    // Display the initial array.
+    arrayVisualizer.render(trace.initialState, {}, { animate: false });
+
+    // Display algorithm code.
+    renderCode(trace.code);
+
+    // Update analysis summary.
+    elements.primaryPattern.textContent = "Sorting";
+
+    elements.detectedStructure.textContent = "Array";
+
+    elements.timeComplexity.textContent = trace.summary.timeComplexity;
+
+    elements.spaceComplexity.textContent = trace.summary.spaceComplexity;
+
+    elements.visualizationSubtitle.textContent = "Bubble Sort Visualization";
+
+    elements.analysisStatus.textContent = "Bubble Sort demonstration loaded.";
+
+    elements.codeFileName.textContent = "bubble-sort.js";
+
+    elements.codeExecutionStatus.textContent = "READY";
 
     elements.executionStatus.textContent = "READY";
 
-    elements.inspectorStatus.textContent = message;
+    // Update the initial execution display.
+    updateExecutionPosition();
 
-}
-
-
-/* ============================================
-   8. BRAIN INITIALIZATION
-============================================ */
-
-function initializeBrain() {
-
-    elements.aiStatus.textContent =
-        "AI: Awaiting connection";
-
-    elements.analyseButton.addEventListener("click", () => {
-
-        const question =
-            elements.questionInput.value.trim();
-
-        if (!question) {
-
-            elements.analysisStatus.textContent =
-                "Please enter a DSA question first.";
-
-            elements.questionInput.focus();
-
-            return;
-
-        }
-
-        elements.analysisStatus.textContent =
-            "Question received. AI integration is pending.";
-
-        console.log("Question submitted:", question);
-
+    updateInspector({
+      action: "INITIALIZE",
+      state: trace.initialState,
+      explanation: "Bubble Sort initialized. Press Play or Next.",
+      variables: {},
+      metrics: {},
     });
 
+    console.log("Bubble Sort loaded:", trace.summary);
+  } catch (error) {
+    console.error("Unable to load Bubble Sort:", error);
+
+    elements.analysisStatus.textContent =
+      "Unable to load Bubble Sort: " + error.message;
+  }
 }
 
+/* ============================================
+   10. EXECUTION STEP HANDLER
+============================================ */
+
+async function handleExecutionStep(step) {
+  if (!step) {
+    return;
+  }
+
+  const metadata = step.metadata || {};
+
+  // Animate the actual array elements.
+  await arrayVisualizer.render(step.state, metadata, {
+    animate: true,
+  });
+
+  // Update the code panel.
+  highlightCodeLine(step.codeLine);
+
+  // Update the execution inspector.
+  updateInspector(step);
+
+  // Update execution position.
+  updateExecutionPosition();
+
+  // Update application state.
+  appState.currentStep = executionController.getPosition().currentStep;
+
+  appState.isPlaying = executionController.getIsPlaying();
+
+  // elements.executionStatus.textContent =
+  //     step.action;
+
+  // elements.codeExecutionStatus.textContent =
+  //     step.action;
+
+  const position = executionController.getPosition();
+
+  if (step.action === "COMPLETE") {
+    elements.executionStatus.textContent = "COMPLETED";
+
+    elements.codeExecutionStatus.textContent = "EXECUTION FINISHED";
+  } else {
+    elements.executionStatus.textContent =
+      "STEP " + (position.currentStep + 1) + " — " + step.action;
+
+    elements.codeExecutionStatus.textContent = "EXECUTING";
+  }
+}
 
 /* ============================================
-   9. THEME INITIALIZATION
+   11. JAVASCRIPT CODE PANEL
+============================================ */
+
+function renderCode(code) {
+  const lines = code.split("\n");
+
+  const fragment = document.createDocumentFragment();
+
+  elements.codeEditor.replaceChildren();
+
+  lines.forEach((line, index) => {
+    const lineElement = document.createElement("div");
+
+    lineElement.className = "code-line";
+
+    lineElement.dataset.line = index;
+
+    const number = document.createElement("span");
+
+    number.className = "code-line-number";
+
+    number.textContent = index + 1;
+
+    const content = document.createElement("span");
+
+    content.className = "code-line-content";
+
+    content.textContent = line;
+
+    lineElement.appendChild(number);
+
+    lineElement.appendChild(content);
+
+    fragment.appendChild(lineElement);
+  });
+
+  elements.codeEditor.appendChild(fragment);
+}
+
+function highlightCodeLine(lineNumber) {
+  if (lineNumber === null || lineNumber === undefined) {
+    return;
+  }
+
+  const lines = elements.codeEditor.querySelectorAll(".code-line");
+
+  lines.forEach((line) => {
+    line.classList.remove("code-line--current", "code-line--executed");
+
+    const index = Number(line.dataset.line);
+
+    if (index < lineNumber) {
+      line.classList.add("code-line--executed");
+    }
+
+    if (index === lineNumber) {
+      line.classList.add("code-line--current");
+    }
+  });
+
+  elements.currentLine.textContent = "Line: " + (lineNumber + 1);
+
+  const currentElement = elements.codeEditor.querySelector(
+    '[data-line="' + lineNumber + '"]',
+  );
+
+  if (currentElement) {
+    // currentElement.scrollIntoView({
+    //     block: "nearest",
+    //     behavior: "smooth"
+    // });
+
+    const editorRect = elements.codeEditor.getBoundingClientRect();
+
+    const lineRect = currentElement.getBoundingClientRect();
+
+    if (lineRect.top < editorRect.top || lineRect.bottom > editorRect.bottom) {
+      currentElement.scrollIntoView({
+        block: "nearest",
+        behavior: "instant",
+      });
+    }
+  }
+}
+
+/* ============================================
+   12. EXECUTION POSITION
+============================================ */
+
+function updateExecutionPosition() {
+  const position = executionController.getPosition();
+
+  const displayedStep = position.currentStep + 1;
+
+  elements.stepCounter.textContent =
+    displayedStep + " / " + position.totalSteps;
+
+  elements.progressFill.style.width = position.progress + "%";
+}
+
+/* ============================================
+   13. EXECUTION INSPECTOR
+============================================ */
+
+function updateInspector(step) {
+  const variables = step.variables || {};
+
+  const metrics = step.metrics || {};
+
+  if (elements.variablesPanel) {
+    elements.variablesPanel.textContent =
+      Object.entries(variables)
+        .map(([key, value]) => key + ": " + JSON.stringify(value))
+        .join("\n") || "No variables available.";
+  }
+
+  if (elements.operationPanel) {
+    elements.operationPanel.textContent =
+      step.explanation || "No explanation available.";
+  }
+
+  if (elements.memoryPanel) {
+    const array = step.state.array;
+
+    elements.memoryPanel.textContent = array
+      .map((item, index) => {
+        return "[" + index + "] " + item.value + " (" + item.id + ")";
+      })
+      .join("\n");
+  }
+
+  if (elements.comparisonCount) {
+    elements.comparisonCount.textContent = metrics.comparisons || 0;
+  }
+
+  if (elements.accessCount) {
+    elements.accessCount.textContent = metrics.arrayAccesses || 0;
+  }
+
+  if (elements.swapCount) {
+    elements.swapCount.textContent = metrics.swaps || 0;
+  }
+
+  if (elements.assignmentCount) {
+    elements.assignmentCount.textContent = metrics.assignments || 0;
+  }
+
+  if (elements.inspectorStatus) {
+    elements.inspectorStatus.textContent = step.action || "EXECUTION";
+  }
+}
+
+/* ============================================
+   14. BRAIN
+============================================ */
+
+// function initializeBrain() {
+//   elements.aiStatus.textContent = "AI: Awaiting connection";
+
+//   elements.analyseButton.addEventListener("click", () => {
+//     const question = elements.questionInput.value.trim();
+
+//     if (!question) {
+//       elements.analysisStatus.textContent =
+//         "Please enter a DSA question first.";
+
+//       elements.questionInput.focus();
+
+//       return;
+//     }
+
+//     elements.analysisStatus.textContent =
+//       "Question received. AI integration is pending.";
+//   });
+// }
+async function initializeBrain() {
+  elements.aiStatus.textContent = "AI: Connecting...";
+
+  elements.aiAnalysisPanel.hidden = true;
+
+  elements.analyseButton.addEventListener(
+    "click",
+    handleProblemAnalysis
+  );
+
+  // elements.approveAnalysisButton.addEventListener(
+  //   "click",
+  //   () => {
+  //     if (!currentAnalysis || currentAnalysis.requiresClarification) {
+  //       return;
+  //     }
+
+  //     elements.approvalStatus.textContent =
+  //       "Approach approved. Ready for visualization planning.";
+
+  //     elements.approveAnalysisButton.disabled = true;
+  //   }
+  // );
+
+  elements.approveAnalysisButton.addEventListener("click", () => {
+  if (!currentAnalysis || currentAnalysis.requiresClarification) {
+    return;
+  }
+
+  if (selectedApproachIndex < 0 || !selectedVisualizationFocus) {
+    elements.approvalStatus.textContent =
+      "Select an approach and visualization focus first.";
+    return;
+  }
+
+  const approach = currentAnalysis.approaches[selectedApproachIndex];
+
+  const focusLabel =
+    selectedVisualizationFocus === "combined"
+      ? "Combined visualization"
+      : selectedVisualizationFocus === "concept"
+        ? "Concept visualization"
+        : selectedVisualizationFocus;
+
+  elements.approvalStatus.textContent =
+    `Selected ${approach.pattern} — ${focusLabel}. Ready for algorithm planning.`;
+
+  elements.approveAnalysisButton.disabled = true;
+});
+
+  try {
+    await checkOllamaConnection();
+
+    elements.aiStatus.textContent =
+      "AI: Connected — Qwen 2.5 Coder";
+
+  } catch (error) {
+    elements.aiStatus.textContent = "AI: Offline";
+
+    elements.analysisStatus.textContent =
+      "Ollama is unavailable. Start Ollama and try again.";
+
+    console.error("Ollama connection:", error);
+  }
+}
+
+async function handleProblemAnalysis() {
+  const question = elements.questionInput.value.trim();
+
+  if (!question) {
+    elements.analysisStatus.textContent =
+      "Please enter a DSA question or visualization request.";
+
+    elements.questionInput.focus();
+    return;
+  }
+
+  elements.analyseButton.disabled = true;
+  elements.aiAnalysisPanel.hidden = true;
+
+  elements.analysisStatus.textContent =
+    "Qwen is analysing your request. Please wait...";
+
+  elements.aiStatus.textContent = "AI: Analysing...";
+
+  try {
+    const analysis = await analyzeDSARequest(question);
+
+    currentAnalysis = analysis;
+
+    renderAnalysisResults(analysis);
+
+    elements.aiAnalysisPanel.hidden = false;
+
+    elements.analysisStatus.textContent =
+      "Analysis completed successfully.";
+
+    elements.aiStatus.textContent =
+      "AI: Connected — Qwen 2.5 Coder";
+
+  } catch (error) {
+    elements.analysisStatus.textContent = error.message;
+
+    elements.aiStatus.textContent = "AI: Error";
+
+    console.error("Problem analysis failed:", error);
+
+  } finally {
+    elements.analyseButton.disabled = false;
+  }
+}
+
+function renderAnalysisResults(analysis) {
+  elements.analysisRequestSummary.textContent =
+    analysis.requestSummary || "Request analysed.";
+
+  elements.analysisConfidence.textContent =
+    `Confidence: ${Math.round(analysis.confidence * 100)}%`;
+
+  elements.primaryPattern.textContent =
+    analysis.primaryPattern || "Not identified";
+
+  elements.detectedStructure.textContent =
+    analysis.recommendedDataStructures.join(", ") ||
+    analysis.requestedDataStructure ||
+    "Not identified";
+
+  elements.timeComplexity.textContent =
+    analysis.timeComplexity || "Not estimated";
+
+  elements.spaceComplexity.textContent =
+    analysis.spaceComplexity || "Not estimated";
+
+  renderTags(elements.analysisKeywords, analysis.keywords);
+
+  renderTags(
+    elements.analysisStructures,
+    analysis.recommendedDataStructures
+  );
+
+  renderClues(analysis.clues);
+
+  renderPatterns(analysis);
+
+  elements.analysisReasoning.textContent =
+    analysis.reasoning || "No explanation provided.";
+
+  elements.analysisClarification.hidden =
+    !analysis.requiresClarification;
+
+  elements.analysisClarificationQuestion.textContent =
+    analysis.clarificationQuestion || "";
+
+  elements.approveAnalysisButton.disabled = true;
+
+  elements.approvalStatus.textContent = "";
+
+  elements.approveAnalysisButton.textContent =
+  analysis.requiresClarification
+    ? "Clarification required"
+    : "Continue with Selected Approach";
+}
+
+function renderTags(container, values) {
+  container.replaceChildren();
+
+  values.forEach(value => {
+    const tag = document.createElement("span");
+
+    tag.className = "analysis-tag";
+    tag.textContent = String(value);
+
+    container.appendChild(tag);
+  });
+}
+
+function renderClues(clues) {
+  elements.analysisClues.replaceChildren();
+
+  clues.forEach(clue => {
+    const card = document.createElement("div");
+    card.className = "analysis-clue-card";
+
+    const title = document.createElement("strong");
+    title.textContent = clue.text || "Detected clue";
+
+    const suggestion = document.createElement("p");
+    suggestion.textContent =
+      `Suggests: ${clue.suggests || "Not specified"}`;
+
+    const reason = document.createElement("p");
+    reason.textContent =
+      clue.reason || "";
+
+    card.append(title, suggestion, reason);
+
+    elements.analysisClues.appendChild(card);
+  });
+}
+
+function renderPatterns(analysis) {
+  elements.analysisPatterns.replaceChildren();
+
+  selectedApproachIndex = -1;
+  selectedVisualizationFocus = null;
+
+  elements.selectedApproachPanel.hidden = true;
+  elements.approachDataStructures.replaceChildren();
+
+  elements.approveAnalysisButton.disabled = true;
+
+  const approaches = Array.isArray(analysis.approaches)
+    ? analysis.approaches
+    : [];
+
+  if (approaches.length === 0) {
+    const message = document.createElement("p");
+    message.textContent =
+      "No supported algorithmic pattern was identified.";
+
+    elements.analysisPatterns.appendChild(message);
+    return;
+  }
+
+  approaches.forEach((approach, index) => {
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "approach-option";
+    button.setAttribute("aria-pressed", "false");
+
+    const title = document.createElement("strong");
+    title.textContent = approach.pattern;
+
+    const applicability = document.createElement("span");
+    applicability.className = "approach-option-badge";
+    applicability.textContent =
+      approach.applicability === "direct"
+        ? "Direct"
+        : "Conditional";
+
+    const reason = document.createElement("p");
+    reason.textContent = approach.reason || "No explanation provided.";
+
+    button.append(title, applicability, reason);
+
+    button.addEventListener("click", () => {
+      selectApproach(index);
+    });
+
+    elements.analysisPatterns.appendChild(button);
+  });
+}
+
+function selectApproach(index) {
+  if (!currentAnalysis || currentAnalysis.requiresClarification) {
+    return;
+  }
+
+  const approach = currentAnalysis.approaches[index];
+
+  if (!approach) {
+    return;
+  }
+
+  selectedApproachIndex = index;
+  selectedVisualizationFocus = null;
+
+  // Update approach button selection.
+  const buttons =
+    elements.analysisPatterns.querySelectorAll(".approach-option");
+
+  buttons.forEach((button, buttonIndex) => {
+    const selected = buttonIndex === index;
+
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+
+  // Display selected approach information.
+  elements.selectedApproachPanel.hidden = false;
+
+  elements.selectedApproachTitle.textContent = approach.pattern;
+
+  elements.selectedApproachApplicability.textContent =
+    approach.applicability === "direct"
+      ? "Directly applicable"
+      : "Conditional approach";
+
+  elements.selectedApproachReason.textContent =
+    approach.reason || "No explanation provided.";
+
+  // Display conditions.
+  elements.selectedApproachConditions.replaceChildren();
+
+  const conditions = Array.isArray(approach.conditions)
+    ? approach.conditions
+    : [];
+
+  elements.selectedApproachConditionsWrapper.hidden =
+    conditions.length === 0;
+
+  conditions.forEach(condition => {
+    const item = document.createElement("li");
+    item.textContent = condition;
+
+    elements.selectedApproachConditions.appendChild(item);
+  });
+
+  // Display data structure choices.
+  renderApproachDataStructures(approach);
+
+  elements.approvalStatus.textContent = "";
+
+  elements.approveAnalysisButton.disabled = true;
+}
+
+function renderApproachDataStructures(approach) {
+  elements.approachDataStructures.replaceChildren();
+
+  const structures = Array.isArray(approach.dataStructures)
+    ? approach.dataStructures
+    : [];
+
+  if (structures.length === 0) {
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "approach-structure-option";
+    button.textContent = "Concept-only visualization";
+
+    button.addEventListener("click", () => {
+      selectVisualizationFocus("concept");
+    });
+
+    elements.approachDataStructures.appendChild(button);
+    return;
+  }
+
+  structures.forEach(structure => {
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "approach-structure-option";
+
+    button.textContent =
+      `${structure.name} · ${structure.role}`;
+
+    button.title = structure.reason || structure.name;
+
+    button.addEventListener("click", () => {
+      selectVisualizationFocus(structure.name);
+    });
+
+    elements.approachDataStructures.appendChild(button);
+  });
+
+  // Offer a synchronized combined view when multiple
+  // data structures belong to the selected approach.
+  if (structures.length > 1) {
+    const combinedButton = document.createElement("button");
+
+    combinedButton.type = "button";
+    combinedButton.className =
+      "approach-structure-option combined-option";
+
+    combinedButton.textContent = "Combined visualization";
+
+    combinedButton.addEventListener("click", () => {
+      selectVisualizationFocus("combined");
+    });
+
+    elements.approachDataStructures.appendChild(combinedButton);
+  }
+
+  // If there's exactly one structure, select it automatically.
+  if (structures.length === 1) {
+    selectVisualizationFocus(structures[0].name);
+  }
+}
+
+function selectVisualizationFocus(focus) {
+  selectedVisualizationFocus = focus;
+
+  const buttons =
+    elements.approachDataStructures.querySelectorAll(
+      ".approach-structure-option"
+    );
+
+  buttons.forEach(button => {
+    const selected =
+      (focus === "combined" &&
+        button.classList.contains("combined-option")) ||
+      (focus === "concept" &&
+        button.textContent === "Concept-only visualization") ||
+      (focus !== "combined" &&
+        focus !== "concept" &&
+        button.textContent.startsWith(focus + " ·"));
+
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-pressed", String(selected));
+  });
+
+  const label =
+    focus === "combined"
+      ? "Combined visualization selected."
+      : focus === "concept"
+        ? "Concept-only visualization selected."
+        : `${focus} visualization selected.`;
+
+  elements.visualizationFocusStatus.textContent = label;
+
+  elements.approveAnalysisButton.disabled =
+    selectedApproachIndex < 0 ||
+    !currentAnalysis ||
+    currentAnalysis.requiresClarification;
+
+  elements.approveAnalysisButton.textContent =
+    "Continue with Selected Approach";
+}
+/* ============================================
+   15. THEME
 ============================================ */
 
 function initializeTheme() {
-
-    document.documentElement.dataset.theme =
-        appState.theme;
-
+  document.documentElement.dataset.theme = appState.theme;
 }
 
-
 /* ============================================
-   10. APPLICATION VERSION
+   16. APPLICATION VERSION
 ============================================ */
 
 function updateApplicationVersion() {
+  const versionElement = document.getElementById("appVersion");
 
-    const versionElement =
-        document.getElementById("appVersion");
-
-    if (versionElement) {
-
-        versionElement.textContent =
-            `v${APP_CONFIG.version}`;
-
-    }
-
+  if (versionElement) {
+    versionElement.textContent = "v" + APP_CONFIG.version;
+  }
 }
 
-
 /* ============================================
-   11. START APPLICATION
+   17. START APPLICATION
 ============================================ */
 
 initializeApp();

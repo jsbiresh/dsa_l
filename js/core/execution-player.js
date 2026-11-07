@@ -4,8 +4,7 @@
  * Controls playback and navigation through recorded
  * algorithm execution steps.
  *
- * This class does not execute algorithms.
- * It navigates execution history managed by ExecutionEngine.
+ * Supports asynchronous animation callbacks.
  */
 
 export class ExecutionPlayer {
@@ -23,33 +22,46 @@ export class ExecutionPlayer {
         this.speed = 1;
 
         this.timerId = null;
+        this.transitionPromise = null;
 
-        this.baseInterval = 1000;
+        this.baseInterval = 350;
     }
 
+
     /**
-     * Register or replace the step-change callback.
+     * Register a step-change callback.
+     *
+     * The callback may return a Promise.
      */
     setOnStepChange(callback) {
 
-        if (callback !== null && typeof callback !== "function") {
-            throw new TypeError("Callback must be a function or null.");
+        if (
+            callback !== null &&
+            typeof callback !== "function"
+        ) {
+            throw new TypeError(
+                "Callback must be a function or null."
+            );
         }
 
         this.onStepChange = callback;
     }
 
+
     /**
-     * Notify the application that the current step changed.
+     * Notify the application about a changed step.
      */
-    notifyStepChange(step) {
+    async notifyStepChange(step) {
 
         if (step && this.onStepChange) {
-            this.onStepChange(step);
+
+            await this.onStepChange(step);
+
         }
 
         return step;
     }
+
 
     /**
      * Start automatic playback.
@@ -69,6 +81,7 @@ export class ExecutionPlayer {
         this.scheduleNextStep();
     }
 
+
     /**
      * Pause automatic playback.
      */
@@ -77,10 +90,14 @@ export class ExecutionPlayer {
         this.isPlaying = false;
 
         if (this.timerId !== null) {
+
             clearTimeout(this.timerId);
+
             this.timerId = null;
+
         }
     }
+
 
     /**
      * Schedule the next execution step.
@@ -93,7 +110,7 @@ export class ExecutionPlayer {
 
         const interval = this.baseInterval / this.speed;
 
-        this.timerId = setTimeout(() => {
+        this.timerId = setTimeout(async () => {
 
             this.timerId = null;
 
@@ -101,76 +118,144 @@ export class ExecutionPlayer {
                 return;
             }
 
-            const step = this.engine.nextStep();
+            try {
 
-            if (!step) {
+                await this.advanceOneStep();
+
+            } catch (error) {
+
                 this.pause();
+
+                console.error(
+                    "Execution playback failed:",
+                    error
+                );
+
                 return;
             }
 
-            this.notifyStepChange(step);
+            if (!this.isPlaying) {
+                return;
+            }
 
             if (this.engine.hasNext()) {
+
                 this.scheduleNextStep();
+
             } else {
+
                 this.pause();
+
             }
 
         }, interval);
     }
 
-    /**
-     * Move forward by one execution step.
-     */
-    next() {
 
-        this.pause();
+    /**
+     * Advance one step and wait for its animation.
+     */
+    async advanceOneStep() {
 
         const step = this.engine.nextStep();
 
-        return this.notifyStepChange(step);
+        if (!step) {
+            return null;
+        }
+
+        this.transitionPromise = this.notifyStepChange(step);
+
+        try {
+
+            await this.transitionPromise;
+
+        } finally {
+
+            this.transitionPromise = null;
+
+        }
+
+        return step;
     }
 
+
     /**
-     * Move backward by one execution step.
+     * Move forward one step manually.
      */
-    previous() {
+    async next() {
 
         this.pause();
+
+        // Wait for an existing animation to finish.
+        if (this.transitionPromise) {
+
+            await this.transitionPromise;
+
+        }
+
+        return await this.advanceOneStep();
+    }
+
+
+    /**
+     * Move backward one step manually.
+     */
+    async previous() {
+
+        this.pause();
+
+        if (this.transitionPromise) {
+
+            await this.transitionPromise;
+
+        }
 
         const step = this.engine.previousStep();
 
-        return this.notifyStepChange(step);
+        return await this.notifyStepChange(step);
     }
 
+
     /**
-     * Restart execution playback.
+     * Restart execution.
      */
-    restart() {
+    async restart() {
 
         this.pause();
+
+        if (this.transitionPromise) {
+
+            await this.transitionPromise;
+
+        }
 
         const step = this.engine.restart();
 
-        return this.notifyStepChange(step);
+        return await this.notifyStepChange(step);
     }
 
+
     /**
-     * Jump to a specific execution step.
+     * Jump to a specific step.
      */
-    jumpTo(index) {
+    async jumpTo(index) {
 
         this.pause();
 
+        if (this.transitionPromise) {
+
+            await this.transitionPromise;
+
+        }
+
         const step = this.engine.jumpToStep(index);
 
-        return this.notifyStepChange(step);
+        return await this.notifyStepChange(step);
     }
+
 
     /**
      * Change playback speed.
-     *
-     * Speed must be greater than zero.
      */
     setSpeed(speed) {
 
@@ -179,43 +264,48 @@ export class ExecutionPlayer {
             !Number.isFinite(speed) ||
             speed <= 0
         ) {
-            throw new RangeError("Playback speed must be greater than zero.");
+            throw new RangeError(
+                "Playback speed must be greater than zero."
+            );
         }
 
         this.speed = speed;
 
-        // Restart the timer using the new speed.
         if (this.isPlaying) {
+
             this.pause();
+
             this.play();
+
         }
 
         return this.speed;
     }
 
-    /**
-     * Return current playback speed.
-     */
+
     getSpeed() {
+
         return this.speed;
+
     }
 
-    /**
-     * Return playback status.
-     */
+
     getIsPlaying() {
+
         return this.isPlaying;
+
     }
 
-    /**
-     * Return the current execution step.
-     */
+
     getCurrentStep() {
+
         return this.engine.getCurrentStep();
+
     }
 
+
     /**
-     * Return current execution progress.
+     * Return execution progress.
      */
     getProgress() {
 
@@ -230,25 +320,32 @@ export class ExecutionPlayer {
         return (currentIndex / (totalSteps - 1)) * 100;
     }
 
+
     /**
-     * Return current execution position.
+     * Return execution position.
      */
     getPosition() {
+
         return {
             currentStep: this.engine.getCurrentIndex(),
             totalSteps: this.engine.getTotalSteps(),
             progress: this.getProgress()
         };
+
     }
 
+
     /**
-     * Clean up timers and callbacks.
+     * Clean up player resources.
      */
     destroy() {
 
         this.pause();
 
         this.onStepChange = null;
+
         this.engine = null;
+
     }
+
 }

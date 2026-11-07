@@ -1,10 +1,11 @@
 /**
  * Bubble Sort
  *
- * Generates a deterministic execution trace for visualization.
+ * Generates a deterministic execution trace.
  *
- * The algorithm is independent of the DOM and UI.
- * Every meaningful operation produces a state snapshot.
+ * Every array element has a stable ID.
+ * This allows the visualizer to animate individual
+ * elements even when duplicate values exist.
  */
 
 export const BUBBLE_SORT_CODE = [
@@ -14,7 +15,7 @@ export const BUBBLE_SORT_CODE = [
     "    for (let i = 0; i < n - 1; i++) {",
     "        let swapped = false;",
     "        for (let j = 0; j < n - i - 1; j++) {",
-    "            if (arr[j] > arr[j + 1]) {",
+    "            if (arr[j].value > arr[j + 1].value) {",
     "                const temp = arr[j];",
     "                arr[j] = arr[j + 1];",
     "                arr[j + 1] = temp;",
@@ -41,13 +42,18 @@ export function createBubbleSortTrace(inputArray) {
     }
 
     if (!inputArray.every(Number.isFinite)) {
-        throw new TypeError("Bubble Sort currently supports finite numbers only.");
+        throw new TypeError(
+            "Bubble Sort currently supports finite numbers only."
+        );
     }
 
-    const arr = [...inputArray];
+    const arr = inputArray.map((value, index) => ({
+        id: "element-" + index,
+        value: value
+    }));
 
     const initialState = {
-        array: [...arr]
+        array: arr.map(item => ({ ...item }))
     };
 
     const steps = [];
@@ -57,22 +63,25 @@ export function createBubbleSortTrace(inputArray) {
     let totalComparisons = 0;
     let totalSwaps = 0;
 
+
     /**
-     * Record an independent execution snapshot.
+     * Create an independent execution snapshot.
      */
     function recordStep({
         action,
         codeLine,
         variables,
         explanation,
-        metrics = {}
+        metrics = {},
+        metadata = {}
     }) {
 
         steps.push({
+
             action,
 
             state: {
-                array: [...arr]
+                array: arr.map(item => ({ ...item }))
             },
 
             codeLine,
@@ -83,9 +92,17 @@ export function createBubbleSortTrace(inputArray) {
 
             explanation,
 
-            metrics
+            metrics: {
+                ...metrics
+            },
+
+            metadata: {
+                ...metadata
+            }
+
         });
     }
+
 
     /**
      * Bubble Sort implementation.
@@ -95,15 +112,26 @@ export function createBubbleSortTrace(inputArray) {
         let swapped = false;
 
         recordStep({
+
             action: "PASS_START",
+
             codeLine: 4,
+
             variables: {
                 i,
                 j: null,
                 swapped
             },
-            explanation: "Starting pass " + (i + 1) + "."
+
+            explanation:
+                "Starting pass " + (i + 1) + ".",
+
+            metadata: {
+                activeIndexes: []
+            }
+
         });
+
 
         for (let j = 0; j < n - i - 1; j++) {
 
@@ -113,26 +141,38 @@ export function createBubbleSortTrace(inputArray) {
             totalComparisons++;
 
             recordStep({
+
                 action: "COMPARE",
+
                 codeLine: 7,
+
                 variables: {
                     i,
                     j,
-                    left,
-                    right,
+                    left: left.value,
+                    right: right.value,
                     swapped
                 },
+
                 explanation:
-                    "Comparing " + left + " and " + right + ".",
+                    "Comparing " + left.value +
+                    " and " + right.value + ".",
 
                 metrics: {
                     comparisons: 1,
                     arrayAccesses: 2,
                     reads: 2
+                },
+
+                metadata: {
+                    comparingIndexes: [j, j + 1],
+                    activeIndexes: [j, j + 1]
                 }
+
             });
 
-            if (left > right) {
+
+            if (left.value > right.value) {
 
                 const temp = arr[j];
 
@@ -145,90 +185,156 @@ export function createBubbleSortTrace(inputArray) {
                 totalSwaps++;
 
                 recordStep({
+
                     action: "SWAP",
+
                     codeLine: 10,
+
                     variables: {
                         i,
                         j,
-                        left,
-                        right,
-                        temp,
+                        left: left.value,
+                        right: right.value,
+                        temp: temp.value,
                         swapped
                     },
+
                     explanation:
-                        "Swapped " + left + " and " + right +
-                        " because " + left + " is greater than " + right + ".",
+                        "Swapped " + left.value +
+                        " and " + right.value +
+                        " because " + left.value +
+                        " is greater than " + right.value + ".",
 
                     metrics: {
                         swaps: 1,
                         assignments: 3,
                         writes: 2
+                    },
+
+                    metadata: {
+                        swappingIndexes: [j, j + 1],
+                        activeIndexes: [j, j + 1]
                     }
+
                 });
 
             } else {
 
                 recordStep({
+
                     action: "NO_SWAP",
+
                     codeLine: 7,
+
                     variables: {
                         i,
                         j,
-                        left,
-                        right,
+                        left: left.value,
+                        right: right.value,
                         swapped
                     },
+
                     explanation:
-                        "No swap required because " + left +
-                        " is not greater than " + right + "."
+                        "No swap required because " +
+                        left.value + " is not greater than " +
+                        right.value + ".",
+
+                    metadata: {
+                        comparingIndexes: [j, j + 1]
+                    }
+
                 });
+
             }
+
+        }
+
+
+        // The final element of this pass is sorted.
+        const sortedIndexes = [];
+
+        for (let index = n - i - 1; index < n; index++) {
+            sortedIndexes.push(index);
         }
 
         recordStep({
+
             action: "PASS_COMPLETE",
+
             codeLine: 14,
+
             variables: {
                 i,
                 j: null,
                 swapped
             },
+
             explanation:
                 "Pass " + (i + 1) + " completed. " +
                 (swapped
                     ? "At least one swap occurred."
-                    : "No swaps occurred.")
+                    : "No swaps occurred."),
+
+            metadata: {
+                sortedIndexes
+            }
+
         });
+
 
         if (!swapped) {
 
             recordStep({
+
                 action: "EARLY_EXIT",
+
                 codeLine: 14,
+
                 variables: {
                     i,
                     swapped
                 },
+
                 explanation:
                     "No swaps occurred during this pass. " +
-                    "The array is already sorted, so execution can stop."
+                    "The array is already sorted, so execution can stop.",
+
+                metadata: {
+                    sortedIndexes: arr.map((item, index) => index)
+                }
+
             });
 
             break;
+
         }
+
     }
 
+
     recordStep({
+
         action: "COMPLETE",
+
         codeLine: 16,
+
         variables: {
             i: null,
             j: null
         },
-        explanation: "Bubble Sort completed successfully."
+
+        explanation:
+            "Bubble Sort completed successfully.",
+
+        metadata: {
+            sortedIndexes: arr.map((item, index) => index)
+        }
+
     });
 
+
     return {
+
         algorithmName: "Bubble Sort",
 
         code: BUBBLE_SORT_CODE,
@@ -238,7 +344,7 @@ export function createBubbleSortTrace(inputArray) {
         steps,
 
         finalState: {
-            array: [...arr]
+            array: arr.map(item => ({ ...item }))
         },
 
         summary: {
@@ -249,5 +355,7 @@ export function createBubbleSortTrace(inputArray) {
             timeComplexity: "O(n²)",
             spaceComplexity: "O(n)"
         }
+
     };
+
 }

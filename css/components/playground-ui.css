@@ -1,0 +1,201 @@
+/* ============================================
+   DSA_L — SIMPLIFIED PLAYGROUND INTERFACE
+============================================ */
+
+/* Header */
+
+.brain-header {
+    grid-template-columns: 190px minmax(0, 1fr);
+    gap: 18px;
+    padding: 12px 18px;
+}
+
+.brain-workspace {
+    min-width: 0;
+}
+
+.brain-title {
+    margin-bottom: 7px;
+}
+
+.question-input-wrapper {
+    gap: 10px;
+}
+
+.question-input-wrapper textarea {
+    min-height: 48px;
+    max-height: 110px;
+}
+
+/* Remove the navigation sidebar visually.
+   Keep its DOM elements for existing JS compatibility. */
+
+.sidebar {
+    display: none !important;
+}
+
+/* Two-panel workspace: visualization + code */
+
+.main-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 36%);
+    min-height: 480px;
+    flex: 1;
+}
+
+/* Visualization area */
+
+.visualization-section {
+    min-width: 0;
+    min-height: 0;
+}
+
+.visualization-canvas {
+    min-height: 320px;
+}
+
+/* Keep the summary compact */
+
+.analysis-summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.analysis-item {
+    padding: 8px 10px;
+}
+
+/* Compact AI results */
+
+.ai-analysis-panel {
+    padding: 10px 14px;
+    max-height: 230px;
+    overflow-y: auto;
+}
+
+.ai-analysis-heading,
+.analysis-request-summary {
+    display: none;
+}
+
+/* Hide secondary analysis information.
+   Preserve elements because app.js still references them. */
+
+.ai-analysis-group:has(#analysisKeywords),
+.ai-analysis-group:has(#analysisClues),
+.ai-analysis-group:has(#analysisStructures),
+.ai-analysis-group:has(#analysisReasoning) {
+    display: none;
+}
+
+/* Display solution choices prominently */
+
+.ai-analysis-group {
+    margin-top: 5px;
+}
+
+.ai-analysis-group h4 {
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.analysis-section-description {
+    margin-bottom: 7px;
+}
+
+.analysis-patterns {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.approach-option {
+    padding: 10px;
+    gap: 6px;
+}
+
+.approach-option strong {
+    font-size: 12px;
+}
+
+/* Simplify the selected approach information */
+
+.selected-approach-panel {
+    margin-top: 8px;
+    padding: 10px;
+}
+
+.selected-approach-structures {
+    display: none;
+}
+
+.selected-approach-conditions {
+    margin-top: 8px;
+    padding: 8px;
+}
+
+.ai-analysis-actions {
+    margin-top: 8px;
+}
+
+.approval-status {
+    margin-top: 5px;
+}
+
+/* Right-side JavaScript panel */
+
+.code-section {
+    min-width: 0;
+    min-height: 0;
+}
+
+.code-editor {
+    flex: 1;
+    min-height: 320px;
+    overflow: auto;
+}
+
+/* Compact execution inspector */
+
+.inspector-header {
+    min-height: 35px;
+    padding: 6px 14px;
+}
+
+.inspector-panel {
+    min-height: 85px;
+    padding: 10px 12px;
+}
+
+/* Responsive layout */
+
+@media (max-width: 900px) {
+    .brain-header {
+        grid-template-columns: 1fr;
+    }
+
+    .main-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .code-section {
+        min-height: 350px;
+    }
+
+    .analysis-patterns {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 550px) {
+    .analysis-patterns {
+        grid-template-columns: 1fr;
+    }
+
+    .analysis-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Remove unused demo toolbar */
+.algorithm-toolbar {
+    display: none !important;
+}
