@@ -18,22 +18,11 @@ import { DATA_STRUCTURES } from "../registry/data-structure-registry.js";
 const PATTERN_SET = new Set(PATTERNS);
 const DATA_STRUCTURE_SET = new Set(DATA_STRUCTURES);
 
-const VALID_MODES = [
-    "problem_solving",
-    "custom_visualization"
-];
+const VALID_MODES = ["problem_solving", "custom_visualization"];
 
-const VALID_APPLICABILITY = [
-    "direct",
-    "conditional"
-];
+const VALID_APPLICABILITY = ["direct", "conditional"];
 
-const VALID_ROLES = [
-    "input",
-    "primary",
-    "auxiliary",
-    "execution"
-];
+const VALID_ROLES = ["input", "primary", "auxiliary", "execution"];
 
 /**
  * Construct the system prompt using our actual registries.
@@ -42,7 +31,7 @@ const VALID_ROLES = [
  * structure names defined by DSA_L.
  */
 function buildSystemPrompt() {
-    return `
+  return `
 You are the pattern classification engine for DSA_L.
 
 DSA_L is an interactive Data Structures and Algorithms
@@ -227,26 +216,21 @@ IMPORTANT
  * Analyze a DSA question or custom visualization request.
  */
 export async function analyzeDSARequest(userRequest) {
-    const request = userRequest.trim();
+  const request = userRequest.trim();
 
-    if (!request) {
-        throw new Error(
-            "Please enter a DSA question or visualization request."
-        );
-    }
+  if (!request) {
+    throw new Error("Please enter a DSA question or visualization request.");
+  }
 
-    const systemPrompt = buildSystemPrompt();
+  const systemPrompt = buildSystemPrompt();
 
-    const userPrompt = JSON.stringify({
-        userRequest: request
-    });
+  const userPrompt = JSON.stringify({
+    userRequest: request,
+  });
 
-    const result = await generateJSON(
-        systemPrompt,
-        userPrompt
-    );
+  const result = await generateJSON(systemPrompt, userPrompt);
 
-    return validateAnalysis(result);
+  return validateAnalysis(result);
 }
 
 /**
@@ -256,232 +240,241 @@ export async function analyzeDSARequest(userRequest) {
  * registries is rejected.
  */
 function validateAnalysis(result) {
-    if (!result || typeof result !== "object") {
-        throw new Error("Invalid AI analysis response.");
+  if (!result || typeof result !== "object") {
+    throw new Error("Invalid AI analysis response.");
+  }
+
+  if (!VALID_MODES.includes(result.mode)) {
+    throw new Error("AI returned an unsupported request mode.");
+  }
+
+  if (!Array.isArray(result.approaches)) {
+    throw new Error("AI did not return a valid approaches array.");
+  }
+
+  if (!Array.isArray(result.requestedDataStructures)) {
+    throw new Error("AI did not return a valid requestedDataStructures array.");
+  }
+
+  // if (typeof result.requiresClarification !== "boolean") {
+  //     throw new Error("Invalid clarification status.");
+  // }
+  const clarificationQuestion =
+    typeof result.clarificationQuestion === "string"
+      ? result.clarificationQuestion.trim()
+      : "";
+
+  let requiresClarification;
+
+  if (typeof result.requiresClarification === "boolean") {
+    requiresClarification = result.requiresClarification;
+  } else if (typeof result.requiresClarification === "string") {
+    const normalized = result.requiresClarification.toLowerCase().trim();
+
+    if (normalized === "true") {
+      requiresClarification = true;
+    } else if (normalized === "false") {
+      requiresClarification = false;
+    } else {
+      throw new Error("AI returned an invalid clarification value.");
     }
+  } else if (
+    result.requiresClarification === undefined ||
+    result.requiresClarification === null
+  ) {
+    // Recover omitted status from the clarification question.
+    requiresClarification = clarificationQuestion.length > 0;
+  } else {
+    throw new Error("AI returned an invalid clarification status.");
+  }
 
-    if (!VALID_MODES.includes(result.mode)) {
-        throw new Error("AI returned an unsupported request mode.");
-    }
+  if (
+    typeof result.confidence !== "number" ||
+    !Number.isFinite(result.confidence) ||
+    result.confidence < 0 ||
+    result.confidence > 1
+  ) {
+    throw new Error("Invalid analysis confidence.");
+  }
 
-    if (!Array.isArray(result.approaches)) {
-        throw new Error("AI did not return a valid approaches array.");
-    }
+  let rejectedPatterns = 0;
+  let rejectedStructures = 0;
 
-    if (!Array.isArray(result.requestedDataStructures)) {
-        throw new Error(
-            "AI did not return a valid requestedDataStructures array."
-        );
-    }
+  const seenPatterns = new Set();
 
-    if (typeof result.requiresClarification !== "boolean") {
-        throw new Error("Invalid clarification status.");
-    }
+  const approaches = result.approaches
+    .map((approach) => {
+      if (!approach || typeof approach !== "object") {
+        rejectedPatterns++;
+        return null;
+      }
 
-    if (
-        typeof result.confidence !== "number" ||
-        !Number.isFinite(result.confidence) ||
-        result.confidence < 0 ||
-        result.confidence > 1
-    ) {
-        throw new Error("Invalid analysis confidence.");
-    }
+      const patternName =
+        typeof approach.pattern === "string" ? approach.pattern.trim() : "";
 
-    let rejectedPatterns = 0;
-    let rejectedStructures = 0;
+      // Reject names that are not in our Pattern Registry.
+      if (!PATTERN_SET.has(patternName)) {
+        rejectedPatterns++;
+        return null;
+      }
 
-    const seenPatterns = new Set();
+      // Avoid duplicate approaches.
+      if (seenPatterns.has(patternName)) {
+        return null;
+      }
 
-    const approaches = result.approaches
-        .map(approach => {
-            if (!approach || typeof approach !== "object") {
-                rejectedPatterns++;
-                return null;
-            }
+      seenPatterns.add(patternName);
 
-            const patternName =
-                typeof approach.pattern === "string"
-                    ? approach.pattern.trim()
-                    : "";
+      const applicability = VALID_APPLICABILITY.includes(approach.applicability)
+        ? approach.applicability
+        : "conditional";
 
-            // Reject names that are not in our Pattern Registry.
-            if (!PATTERN_SET.has(patternName)) {
-                rejectedPatterns++;
-                return null;
-            }
+      const rawStructures = Array.isArray(approach.dataStructures)
+        ? approach.dataStructures
+        : [];
 
-            // Avoid duplicate approaches.
-            if (seenPatterns.has(patternName)) {
-                return null;
-            }
+      const seenStructures = new Set();
 
-            seenPatterns.add(patternName);
+      const dataStructures = rawStructures
+        .map((structure) => {
+          if (!structure || typeof structure !== "object") {
+            rejectedStructures++;
+            return null;
+          }
 
-            const applicability =
-                VALID_APPLICABILITY.includes(approach.applicability)
-                    ? approach.applicability
-                    : "conditional";
+          const name =
+            typeof structure.name === "string" ? structure.name.trim() : "";
 
-            const rawStructures = Array.isArray(approach.dataStructures)
-                ? approach.dataStructures
-                : [];
+          // Reject names outside our Data Structure Registry.
+          if (!DATA_STRUCTURE_SET.has(name)) {
+            rejectedStructures++;
+            return null;
+          }
 
-            const seenStructures = new Set();
+          if (seenStructures.has(name)) {
+            return null;
+          }
 
-            const dataStructures = rawStructures
-                .map(structure => {
-                    if (!structure || typeof structure !== "object") {
-                        rejectedStructures++;
-                        return null;
-                    }
+          seenStructures.add(name);
 
-                    const name =
-                        typeof structure.name === "string"
-                            ? structure.name.trim()
-                            : "";
+          return {
+            name,
 
-                    // Reject names outside our Data Structure Registry.
-                    if (!DATA_STRUCTURE_SET.has(name)) {
-                        rejectedStructures++;
-                        return null;
-                    }
+            role: VALID_ROLES.includes(structure.role)
+              ? structure.role
+              : "auxiliary",
 
-                    if (seenStructures.has(name)) {
-                        return null;
-                    }
-
-                    seenStructures.add(name);
-
-                    return {
-                        name,
-
-                        role: VALID_ROLES.includes(structure.role)
-                            ? structure.role
-                            : "auxiliary",
-
-                        reason:
-                            typeof structure.reason === "string"
-                                ? structure.reason
-                                : ""
-                    };
-                })
-                .filter(Boolean);
-
-            return {
-                pattern: patternName,
-                applicability,
-
-                reason:
-                    typeof approach.reason === "string"
-                        ? approach.reason
-                        : "",
-
-                conditions: normalizeStringArray(
-                    approach.conditions
-                ),
-
-                dataStructures
-            };
+            reason:
+              typeof structure.reason === "string" ? structure.reason : "",
+          };
         })
         .filter(Boolean);
 
-    const requestedDataStructures = [
-        ...new Set(
-            result.requestedDataStructures.filter(
-                name =>
-                    typeof name === "string" &&
-                    DATA_STRUCTURE_SET.has(name)
-            )
-        )
-    ];
+      return {
+        pattern: patternName,
+        applicability,
 
-    const keywords = normalizeStringArray(result.keywords);
+        reason: typeof approach.reason === "string" ? approach.reason : "",
 
-    const clues = Array.isArray(result.clues)
-        ? result.clues
-            .filter(clue => clue && typeof clue === "object")
-            .map(clue => ({
-                text: safeString(clue.text),
-                suggests: safeString(clue.suggests),
-                reason: safeString(clue.reason)
-            }))
-        : [];
+        conditions: normalizeStringArray(approach.conditions),
 
-    // Compatibility fields for the existing analysis UI.
-    const primaryApproach =
-        approaches.find(item => item.applicability === "direct") ||
-        approaches[0] ||
-        null;
+        dataStructures,
+      };
+    })
+    .filter(Boolean);
 
-    const recommendedDataStructures = [
-        ...new Set([
-            ...approaches.flatMap(approach =>
-                approach.dataStructures.map(item => item.name)
-            ),
-            ...requestedDataStructures
-        ])
-    ];
+  const requestedDataStructures = [
+    ...new Set(
+      result.requestedDataStructures.filter(
+        (name) => typeof name === "string" && DATA_STRUCTURE_SET.has(name),
+      ),
+    ),
+  ];
 
-    const secondaryPatterns = approaches
-        .filter(
-            approach => approach !== primaryApproach
-        )
-        .map(approach => approach.pattern);
+  const keywords = normalizeStringArray(result.keywords);
 
-    return {
-        mode: result.mode,
+  const clues = Array.isArray(result.clues)
+    ? result.clues
+        .filter((clue) => clue && typeof clue === "object")
+        .map((clue) => ({
+          text: safeString(clue.text),
+          suggests: safeString(clue.suggests),
+          reason: safeString(clue.reason),
+        }))
+    : [];
 
-        requestSummary: safeString(result.requestSummary),
+  // Compatibility fields for the existing analysis UI.
+  const primaryApproach =
+    approaches.find((item) => item.applicability === "direct") ||
+    approaches[0] ||
+    null;
 
-        keywords,
-        clues,
-        approaches,
+  const recommendedDataStructures = [
+    ...new Set([
+      ...approaches.flatMap((approach) =>
+        approach.dataStructures.map((item) => item.name),
+      ),
+      ...requestedDataStructures,
+    ]),
+  ];
 
-        requestedDataStructures,
+  const secondaryPatterns = approaches
+    .filter((approach) => approach !== primaryApproach)
+    .map((approach) => approach.pattern);
 
-        reasoning: safeString(result.reasoning),
+  return {
+    mode: result.mode,
 
-        confidence: result.confidence,
+    requestSummary: safeString(result.requestSummary),
 
-        requiresClarification: result.requiresClarification,
+    keywords,
+    clues,
+    approaches,
 
-        clarificationQuestion: safeString(
-            result.clarificationQuestion
-        ),
+    requestedDataStructures,
 
-        // Legacy UI compatibility.
-        primaryPattern: primaryApproach?.pattern || "",
-        secondaryPatterns,
-        recommendedDataStructures,
-        requestedDataStructure:
-            requestedDataStructures[0] || "",
-        timeComplexity: "",
-        spaceComplexity: "",
-        concepts: [],
+    reasoning: safeString(result.reasoning),
 
-        // Useful for diagnostics.
-        registryValidation: {
-            rejectedPatterns,
-            rejectedStructures
-        }
-    };
+    confidence: result.confidence,
+
+    requiresClarification,
+
+    // requiresClarification: result.requiresClarification,
+
+    clarificationQuestion: safeString(result.clarificationQuestion),
+
+    // Legacy UI compatibility.
+    primaryPattern: primaryApproach?.pattern || "",
+    secondaryPatterns,
+    recommendedDataStructures,
+    requestedDataStructure: requestedDataStructures[0] || "",
+    timeComplexity: "",
+    spaceComplexity: "",
+    concepts: [],
+
+    // Useful for diagnostics.
+    registryValidation: {
+      rejectedPatterns,
+      rejectedStructures,
+    },
+  };
 }
 
 function normalizeStringArray(value) {
-    if (!Array.isArray(value)) {
-        return [];
-    }
+  if (!Array.isArray(value)) {
+    return [];
+  }
 
-    return [
-        ...new Set(
-            value
-                .filter(item => typeof item === "string")
-                .map(item => item.trim())
-                .filter(Boolean)
-        )
-    ];
+  return [
+    ...new Set(
+      value
+        .filter((item) => typeof item === "string")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 function safeString(value) {
-    return typeof value === "string" ? value.trim() : "";
+  return typeof value === "string" ? value.trim() : "";
 }

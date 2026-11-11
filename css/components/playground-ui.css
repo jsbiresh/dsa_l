@@ -199,3 +199,77 @@
 .algorithm-toolbar {
     display: none !important;
 }
+
+/* Konva visualization canvas */
+.visualization-canvas {
+    display: block;
+    overflow: auto;
+    padding: 0;
+    min-width: 0;
+}
+
+.visualization-canvas .konvajs-content {
+    margin-inline: auto;
+}
+
+
+
+
+
+/* Demonstration action in visualization header */
+.canvas-actions .demo-button {
+    padding: 7px 11px;
+    border: 1px solid var(--border-primary);
+    border-radius: 7px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.canvas-actions .demo-button:hover {
+    border-color: #38bdf8;
+}
+
+/* Dynamic multi-structure visualization workspace */
+.visualization-manager-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+}
+
+.visualization-manager-grid[data-count="1"] {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.visualization-manager-panel {
+    min-width: 0;
+    min-height: 340px;
+    overflow: hidden;
+    border: 1px solid var(--border-primary);
+    border-radius: 9px;
+    background: var(--bg-secondary);
+}
+
+.visualization-manager-canvas {
+    width: 100%;
+    min-width: 0;
+    min-height: 340px;
+    height: 380px;
+    overflow: auto;
+}
+
+.visualization-manager-canvas .konvajs-content {
+    margin-inline: auto;
+}
+
+@media (max-width: 760px) {
+    .visualization-manager-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

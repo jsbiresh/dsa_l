@@ -2,7 +2,7 @@
    DSA_L — APPLICATION ENTRY POINT
 ============================================ */
 
-import { ArrayVisualizer } from "./visualizers/array-visualizer.js";
+import { ArrayRenderer } from "./graphics/renderers/array-renderer.js";
 
 import { ExecutionController } from "./core/execution-controller.js";
 
@@ -10,6 +10,8 @@ import { createBubbleSortTrace } from "./algorithms/bubble-sort.js";
 
 import { analyzeDSARequest } from "./ai/problem-analyzer.js";
 import { checkOllamaConnection } from "./ai/ollama-client.js";
+import { createVisualizationPlan } from "./ai/visualization-planner.js";
+import { createExecutionTrace } from "./visualization/visualization-runtime.js";
 
 /* ============================================
    1. APPLICATION CONFIGURATION
@@ -125,6 +127,7 @@ visualizationFocusStatus: document.getElementById("visualizationFocusStatus"),
   approvalStatus: document.getElementById("approvalStatus"),
 };
 let currentAnalysis = null;
+let analyzedQuestion = "";
 let selectedApproachIndex = -1;
 let selectedVisualizationFocus = null;
 
@@ -132,7 +135,7 @@ let selectedVisualizationFocus = null;
    4. CORE COMPONENTS
 ============================================ */
 
-const arrayVisualizer = new ArrayVisualizer(elements.visualizationCanvas);
+const arrayVisualizer = new ArrayRenderer(elements.visualizationCanvas);
 
 const executionController = new ExecutionController(handleExecutionStep);
 
@@ -230,60 +233,75 @@ function initializeSliders() {
    8. EXECUTION CONTROLS
 ============================================ */
 
+let navigationQueue = Promise.resolve();
+
 function initializeExecutionControls() {
-  elements.playButton.addEventListener("click", () => {
-    if (!appState.currentAlgorithm) {
-      return;
-    }
+  elements.playButton.addEventListener("click", async () => {
+    if (!appState.currentAlgorithm) return;
+
+    await navigationQueue;
 
     executionController.play();
-
     appState.isPlaying = true;
-
     elements.executionStatus.textContent = "PLAYING";
   });
 
   elements.pauseButton.addEventListener("click", () => {
     executionController.pause();
-
     appState.isPlaying = false;
-
     elements.executionStatus.textContent = "PAUSED";
   });
 
-  elements.nextButton.addEventListener("click", async () => {
-    if (!appState.currentAlgorithm) {
-      return;
-    }
-
-    await executionController.next();
+  elements.nextButton.addEventListener("click", () => {
+    navigateOneStep(1);
   });
 
-  elements.previousButton.addEventListener("click", async () => {
-    if (!appState.currentAlgorithm) {
-      return;
-    }
-
-    await executionController.previous();
+  elements.previousButton.addEventListener("click", () => {
+    navigateOneStep(-1);
   });
 
   elements.restartButton.addEventListener("click", async () => {
-    if (!appState.currentAlgorithm) {
-      return;
-    }
+    if (!appState.currentAlgorithm) return;
 
+    executionController.pause();
+    await navigationQueue;
     await executionController.restart();
 
     appState.isPlaying = false;
+    elements.executionStatus.textContent = "READY";
   });
 }
 
-/* ============================================
-   9. ALGORITHM DEMO
-============================================ */
+function navigateOneStep(direction) {
+  if (!appState.currentAlgorithm) return navigationQueue;
+
+  executionController.pause();
+  appState.isPlaying = false;
+  elements.executionStatus.textContent = "PAUSED";
+
+  navigationQueue = navigationQueue.then(async () => {
+    if (direction === 1 && executionController.hasNext()) {
+      await executionController.next();
+    } else if (direction === -1 && executionController.hasPrevious()) {
+      await executionController.previous();
+    }
+
+    appState.isPlaying = false;
+  }).catch((error) => {
+    console.error("Step navigation failed:", error);
+    elements.executionStatus.textContent = "NAVIGATION ERROR";
+  });
+
+  return navigationQueue;
+}
 
 function initializeAlgorithmDemo() {
-  elements.runBubbleSortButton.addEventListener("click", loadBubbleSortDemo);
+  if (elements.runBubbleSortButton) {
+    elements.runBubbleSortButton.addEventListener(
+      "click",
+      loadBubbleSortDemo
+    );
+  }
 }
 
 function loadBubbleSortDemo() {
@@ -367,42 +385,27 @@ executionController.restart();
 ============================================ */
 
 async function handleExecutionStep(step) {
-  if (!step) {
-    return;
-  }
+  if (!step) return;
 
   const metadata = step.metadata || {};
 
-  // Animate the actual array elements.
-  await arrayVisualizer.render(step.state, metadata, {
-    animate: true,
+  // Start the visual transition.
+  const rendering = arrayVisualizer.render(step.state, metadata, {
+    animate: true
   });
 
-  // Update the code panel.
+  // Restore the code and inspector from this exact snapshot.
   highlightCodeLine(step.codeLine);
-
-  // Update the execution inspector.
   updateInspector(step);
-
-  // Update execution position.
   updateExecutionPosition();
-
-  // Update application state.
-  appState.currentStep = executionController.getPosition().currentStep;
-
-  appState.isPlaying = executionController.getIsPlaying();
-
-  // elements.executionStatus.textContent =
-  //     step.action;
-
-  // elements.codeExecutionStatus.textContent =
-  //     step.action;
 
   const position = executionController.getPosition();
 
+  appState.currentStep = position.currentStep;
+  appState.isPlaying = executionController.getIsPlaying();
+
   if (step.action === "COMPLETE") {
     elements.executionStatus.textContent = "COMPLETED";
-
     elements.codeExecutionStatus.textContent = "EXECUTION FINISHED";
   } else {
     elements.executionStatus.textContent =
@@ -410,6 +413,9 @@ async function handleExecutionStep(step) {
 
     elements.codeExecutionStatus.textContent = "EXECUTING";
   }
+
+  // Wait for Konva animations before allowing another queued step.
+  await rendering;
 }
 
 /* ============================================
@@ -453,15 +459,18 @@ function renderCode(code) {
 }
 
 function highlightCodeLine(lineNumber) {
-  if (lineNumber === null || lineNumber === undefined) {
-    return;
-  }
-
   const lines = elements.codeEditor.querySelectorAll(".code-line");
 
   lines.forEach((line) => {
     line.classList.remove("code-line--current", "code-line--executed");
+  });
 
+  if (!Number.isInteger(lineNumber) || lineNumber < 0) {
+    elements.currentLine.textContent = "Line: —";
+    return;
+  }
+
+  lines.forEach((line) => {
     const index = Number(line.dataset.line);
 
     if (index < lineNumber) {
@@ -476,31 +485,21 @@ function highlightCodeLine(lineNumber) {
   elements.currentLine.textContent = "Line: " + (lineNumber + 1);
 
   const currentElement = elements.codeEditor.querySelector(
-    '[data-line="' + lineNumber + '"]',
+    '[data-line="' + lineNumber + '"]'
   );
 
   if (currentElement) {
-    // currentElement.scrollIntoView({
-    //     block: "nearest",
-    //     behavior: "smooth"
-    // });
-
     const editorRect = elements.codeEditor.getBoundingClientRect();
-
     const lineRect = currentElement.getBoundingClientRect();
 
     if (lineRect.top < editorRect.top || lineRect.bottom > editorRect.bottom) {
       currentElement.scrollIntoView({
         block: "nearest",
-        behavior: "instant",
+        behavior: "instant"
       });
     }
   }
 }
-
-/* ============================================
-   12. EXECUTION POSITION
-============================================ */
 
 function updateExecutionPosition() {
   const position = executionController.getPosition();
@@ -612,31 +611,10 @@ async function initializeBrain() {
   //   }
   // );
 
-  elements.approveAnalysisButton.addEventListener("click", () => {
-  if (!currentAnalysis || currentAnalysis.requiresClarification) {
-    return;
-  }
-
-  if (selectedApproachIndex < 0 || !selectedVisualizationFocus) {
-    elements.approvalStatus.textContent =
-      "Select an approach and visualization focus first.";
-    return;
-  }
-
-  const approach = currentAnalysis.approaches[selectedApproachIndex];
-
-  const focusLabel =
-    selectedVisualizationFocus === "combined"
-      ? "Combined visualization"
-      : selectedVisualizationFocus === "concept"
-        ? "Concept visualization"
-        : selectedVisualizationFocus;
-
-  elements.approvalStatus.textContent =
-    `Selected ${approach.pattern} — ${focusLabel}. Ready for algorithm planning.`;
-
-  elements.approveAnalysisButton.disabled = true;
-});
+  elements.approveAnalysisButton.addEventListener(
+    "click",
+    handlePlayAnimation
+  );
 
   try {
     await checkOllamaConnection();
@@ -677,6 +655,7 @@ async function handleProblemAnalysis() {
     const analysis = await analyzeDSARequest(question);
 
     currentAnalysis = analysis;
+    analyzedQuestion = question;
 
     renderAnalysisResults(analysis);
 
@@ -697,6 +676,149 @@ async function handleProblemAnalysis() {
 
   } finally {
     elements.analyseButton.disabled = false;
+  }
+}
+
+/**
+ * Generate and start an animation for the selected approach.
+ */
+async function handlePlayAnimation() {
+  if (
+    !currentAnalysis ||
+    currentAnalysis.requiresClarification ||
+    selectedApproachIndex < 0
+  ) {
+    return;
+  }
+
+  const selectedApproach =
+    currentAnalysis.approaches[selectedApproachIndex];
+
+  if (!analyzedQuestion) {
+    elements.approvalStatus.textContent =
+      "Please analyse the question again.";
+    return;
+  }
+
+  elements.approveAnalysisButton.disabled = true;
+  elements.approveAnalysisButton.textContent = "Preparing...";
+  elements.analysisStatus.textContent =
+    "Qwen is preparing the visualization plan...";
+
+  elements.approvalStatus.textContent =
+    "Generating algorithm steps and sample data.";
+
+  elements.aiStatus.textContent = "AI: Planning animation...";
+
+  try {
+    const plan = await createVisualizationPlan({
+      question: analyzedQuestion,
+      analysis: currentAnalysis,
+      selectedApproach
+    });
+
+    const trace = createExecutionTrace(plan);
+
+    await loadGeneratedTrace(trace, plan);
+
+    elements.approvalStatus.textContent =
+      "Visualization loaded. Playback started.";
+
+    elements.analysisStatus.textContent =
+      "Animation is running.";
+
+    elements.aiStatus.textContent =
+      "AI: Connected — Qwen 2.5 Coder";
+
+  } catch (error) {
+    elements.approvalStatus.textContent = error.message;
+    elements.analysisStatus.textContent =
+      "Unable to prepare this visualization.";
+
+    elements.aiStatus.textContent = "AI: Ready";
+
+    console.error("Visualization planning failed:", error);
+
+  } finally {
+    elements.approveAnalysisButton.disabled =
+      !currentAnalysis ||
+      currentAnalysis.requiresClarification ||
+      selectedApproachIndex < 0;
+
+    elements.approveAnalysisButton.textContent = "Play Animation";
+  }
+}
+
+
+/**
+ * Load a validated execution trace into the existing player.
+ */
+async function loadGeneratedTrace(trace, plan) {
+  executionController.pause();
+
+  appState.isPlaying = false;
+  appState.currentAlgorithm = trace;
+  appState.totalSteps = trace.steps.length;
+
+  elements.executionStatus.textContent = "LOADING";
+  elements.codeExecutionStatus.textContent = "LOADING";
+
+  // Initialise the existing execution engine.
+  executionController.initialize(
+    trace.algorithmName,
+    trace.initialState
+  );
+
+  // Register deterministic steps.
+  trace.steps.forEach(step => {
+    executionController.recordStep(step);
+  });
+
+  // Render the initial visual state.
+  await arrayVisualizer.render(
+    trace.initialState,
+    {},
+    { animate: false }
+  );
+
+  // Display the JavaScript supplied by the validated plan.
+  renderCode(trace.code);
+
+  // Update problem metadata.
+  elements.primaryPattern.textContent = trace.pattern;
+
+  elements.detectedStructure.textContent =
+    plan.visualizations.map(item => item.structure).join(", ");
+
+  elements.timeComplexity.textContent =
+    trace.complexity.time;
+
+  elements.spaceComplexity.textContent =
+    trace.complexity.space;
+
+  elements.visualizationSubtitle.textContent =
+    trace.pattern + " Visualization";
+
+  const fileName = trace.pattern
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  elements.codeFileName.textContent =
+    fileName + ".js";
+
+  elements.executionStatus.textContent = "READY";
+  elements.codeExecutionStatus.textContent = "READY";
+
+  // Return the player to the beginning and update the UI.
+  await executionController.restart();
+
+  updateExecutionPosition();
+
+  // Start playback automatically.
+  if (executionController.hasNext()) {
+    appState.isPlaying = true;
+    executionController.play();
   }
 }
 
@@ -748,7 +870,7 @@ function renderAnalysisResults(analysis) {
   elements.approveAnalysisButton.textContent =
   analysis.requiresClarification
     ? "Clarification required"
-    : "Continue with Selected Approach";
+    : "Play Animation";
 }
 
 function renderTags(container, values) {
@@ -854,9 +976,7 @@ function selectApproach(index) {
   }
 
   selectedApproachIndex = index;
-  selectedVisualizationFocus = null;
 
-  // Update approach button selection.
   const buttons =
     elements.analysisPatterns.querySelectorAll(".approach-option");
 
@@ -867,9 +987,7 @@ function selectApproach(index) {
     button.setAttribute("aria-pressed", String(selected));
   });
 
-  // Display selected approach information.
   elements.selectedApproachPanel.hidden = false;
-
   elements.selectedApproachTitle.textContent = approach.pattern;
 
   elements.selectedApproachApplicability.textContent =
@@ -880,7 +998,6 @@ function selectApproach(index) {
   elements.selectedApproachReason.textContent =
     approach.reason || "No explanation provided.";
 
-  // Display conditions.
   elements.selectedApproachConditions.replaceChildren();
 
   const conditions = Array.isArray(approach.conditions)
@@ -893,16 +1010,18 @@ function selectApproach(index) {
   conditions.forEach(condition => {
     const item = document.createElement("li");
     item.textContent = condition;
-
     elements.selectedApproachConditions.appendChild(item);
   });
 
-  // Display data structure choices.
-  renderApproachDataStructures(approach);
+  // Data structures are determined by AI, not selected manually.
+  elements.visualizationFocusStatus.textContent =
+    "Data structures will be selected automatically.";
 
-  elements.approvalStatus.textContent = "";
+  elements.approvalStatus.textContent =
+    "Approach selected. Ready to generate animation.";
 
-  elements.approveAnalysisButton.disabled = true;
+  elements.approveAnalysisButton.disabled = false;
+  elements.approveAnalysisButton.textContent = "Play Animation";
 }
 
 function renderApproachDataStructures(approach) {
@@ -1006,7 +1125,7 @@ function selectVisualizationFocus(focus) {
     currentAnalysis.requiresClarification;
 
   elements.approveAnalysisButton.textContent =
-    "Continue with Selected Approach";
+    "Play Animation";
 }
 /* ============================================
    15. THEME

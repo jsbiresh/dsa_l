@@ -170,6 +170,14 @@
               <span class="execution-status" id="executionStatus"> READY </span>
 
               <button
+                id="runBubbleSortButton"
+                class="demo-button"
+                type="button"
+                title="Load deterministic Bubble Sort demonstration"
+              >
+                Bubble Sort Demo
+              </button>
+              <button
                 id="resetCanvasButton"
                 type="button"
                 title="Reset visualization"
@@ -332,7 +340,7 @@
 
             <div class="ai-analysis-actions">
               <button id="approveAnalysisButton" type="button" disabled>
-                Continue with Selected Approach
+                Play Animation
               </button>
             </div>
 
@@ -351,9 +359,7 @@
               <span>Run a deterministic demonstration</span>
             </div>
 
-            <!-- <button id="runBubbleSortButton" type="button">
-              Run Bubble Sort Demo
-            </button> -->
+
           </div>
 
           <!-- ACTUAL VISUALIZATION AREA -->
@@ -408,6 +414,7 @@
 
           <div class="execution-controls">
             <div class="player-buttons">
+
               <button id="restartButton" type="button" title="Restart">
                 ↺
               </button>
@@ -602,6 +609,7 @@
 
     <!-- Application Entry Point -->
 
+    <script src="js/vendor/konva.min.js"></script>
     <script type="module" src="js/app.js"></script>
   </body>
 </html>
