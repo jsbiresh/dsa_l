@@ -35,28 +35,43 @@ export const PLAN_CONFIG = Object.freeze({
  * its implementation and capabilities are added.
  */
 const VISUALIZER_OPERATIONS = Object.freeze({
-
     array: {
         render: ["element-rendering"],
-        compare: [
-            "element-comparison",
-            "comparison-highlighting"
-        ],
-        highlight: [
-            "active-element-highlighting"
-        ],
-        swap: [
-            "swap-highlighting",
-            "physical-element-movement"
-        ],
-        markSorted: [
-            "sorted-element-highlighting"
-        ],
-        complete: [
-            "element-rendering"
-        ]
-    }
+        compare: ["element-comparison", "comparison-highlighting"],
+        highlight: ["active-element-highlighting"],
+        swap: ["swap-highlighting", "physical-element-movement"],
+        markSorted: ["sorted-element-highlighting"],
+        complete: ["element-rendering"]
+    },
 
+    "linked-list": {
+        render: ["node-rendering", "pointer-connections"],
+        highlight: ["active-node-highlighting"],
+        compare: ["comparison-highlighting"],
+        updateLink: ["link-updating"],
+        reverseLink: ["link-updating"],
+        insertNode: ["node-insertion", "node-rendering"],
+        removeNode: ["node-removal"],
+        complete: ["node-rendering"]
+    },
+
+    tree: {
+        render: ["node-rendering", "parent-child-connections"],
+        highlight: ["active-node-highlighting"],
+        compare: ["comparison-highlighting"],
+        visit: ["visited-node-highlighting"],
+        complete: ["node-rendering"]
+    },
+
+    graph: {
+        render: ["vertex-rendering", "edge-rendering"],
+        highlight: ["active-vertex-highlighting"],
+        compare: ["active-vertex-highlighting"],
+        visit: ["visited-vertex-highlighting"],
+        enqueue: ["frontier-highlighting"],
+        traverseEdge: ["active-edge-highlighting"],
+        complete: ["vertex-rendering"]
+    }
 });
 
 
@@ -434,6 +449,12 @@ function validateSteps(
             fail(`Execution step ${index} has no visual states.`);
         }
 
+        if (stateEntries.length !== visualizations.length) {
+            fail(
+                `Execution step ${index} must contain a snapshot for every configured visualization.`
+            );
+        }
+
         for (const [visualizationId, visualState] of stateEntries) {
 
             const visualization =
@@ -536,43 +557,167 @@ function validateSteps(
 ============================================ */
 
 function validateVisualState(visualizerId, state) {
-
     if (visualizerId === "array") {
-
         if (!Array.isArray(state.array)) {
             fail("Array visualization requires state.array.");
         }
 
         state.array.forEach((item, index) => {
-
             if (
                 typeof item === "number" &&
                 Number.isFinite(item)
-            ) {
-                return;
-            }
+            ) return;
 
             if (
                 typeof item === "string" ||
                 typeof item === "boolean"
-            ) {
-                return;
-            }
+            ) return;
 
             if (
                 item &&
                 typeof item === "object" &&
                 Object.prototype.hasOwnProperty.call(item, "value")
-            ) {
-                return;
-            }
+            ) return;
 
             fail(`Invalid array element at index ${index}.`);
-
         });
 
+        return;
     }
 
+    if (visualizerId === "linked-list") {
+        if (!Array.isArray(state.nodes)) {
+            fail("Linked List visualization requires state.nodes.");
+        }
+
+        const ids = new Set();
+
+        state.nodes.forEach((node, index) => {
+            requireObject(node, `Linked List node ${index}`);
+            requireString(String(node.id ?? ""), `Linked List node ${index} ID`);
+
+            if (ids.has(String(node.id))) {
+                fail(`Duplicate Linked List node ID: ${node.id}`);
+            }
+
+            ids.add(String(node.id));
+
+            if (!Object.prototype.hasOwnProperty.call(node, "value")) {
+                fail(`Linked List node ${node.id} is missing its value.`);
+            }
+        });
+
+        state.nodes.forEach(node => {
+            const nextId = node.nextId !== undefined
+                ? node.nextId
+                : node.next;
+
+            if (
+                nextId !== undefined &&
+                nextId !== null &&
+                !ids.has(String(nextId))
+            ) {
+                fail(`Linked List node ${node.id} references an unknown next node.`);
+            }
+        });
+
+        if (
+            state.headId !== undefined &&
+            state.headId !== null &&
+            !ids.has(String(state.headId))
+        ) {
+            fail("Linked List headId references an unknown node.");
+        }
+
+        return;
+    }
+
+    if (visualizerId === "tree") {
+        if (!Array.isArray(state.nodes)) {
+            fail("Binary Tree visualization requires state.nodes.");
+        }
+
+        const ids = new Set();
+
+        state.nodes.forEach((node, index) => {
+            requireObject(node, `Tree node ${index}`);
+            requireString(String(node.id ?? ""), `Tree node ${index} ID`);
+
+            if (ids.has(String(node.id))) {
+                fail(`Duplicate tree node ID: ${node.id}`);
+            }
+
+            ids.add(String(node.id));
+
+            if (!Object.prototype.hasOwnProperty.call(node, "value")) {
+                fail(`Tree node ${node.id} is missing its value.`);
+            }
+        });
+
+        state.nodes.forEach(node => {
+            for (const childId of [node.leftId, node.rightId]) {
+                if (
+                    childId !== undefined &&
+                    childId !== null &&
+                    !ids.has(String(childId))
+                ) {
+                    fail(`Tree node ${node.id} references an unknown child.`);
+                }
+            }
+        });
+
+        if (
+            state.rootId !== undefined &&
+            state.rootId !== null &&
+            !ids.has(String(state.rootId))
+        ) {
+            fail("Binary Tree rootId references an unknown node.");
+        }
+
+        return;
+    }
+
+    if (visualizerId === "graph") {
+        if (!Array.isArray(state.vertices) || !Array.isArray(state.edges)) {
+            fail("Graph visualization requires vertices and edges arrays.");
+        }
+
+        const ids = new Set();
+
+        state.vertices.forEach((vertex, index) => {
+            requireObject(vertex, `Graph vertex ${index}`);
+            requireString(String(vertex.id ?? ""), `Graph vertex ${index} ID`);
+
+            if (ids.has(String(vertex.id))) {
+                fail(`Duplicate graph vertex ID: ${vertex.id}`);
+            }
+
+            ids.add(String(vertex.id));
+        });
+
+        state.edges.forEach((edge, index) => {
+            requireObject(edge, `Graph edge ${index}`);
+
+            if (
+                !ids.has(String(edge.from)) ||
+                !ids.has(String(edge.to))
+            ) {
+                fail(`Graph edge ${index} references an unknown vertex.`);
+            }
+
+            if (
+                edge.weight !== undefined &&
+                typeof edge.weight !== "string" &&
+                (typeof edge.weight !== "number" || !Number.isFinite(edge.weight))
+            ) {
+                fail(`Graph edge ${index} has an invalid weight.`);
+            }
+        });
+
+        return;
+    }
+
+    fail(`No visual state validator exists for '${visualizerId}'.`);
 }
 
 

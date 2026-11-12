@@ -209,7 +209,21 @@ function resolveSelectedApproach(
 
     }
 
-    return approach;
+    // Keep educational knowledge in the analysis object,
+    // but pass only execution-relevant information to the planner.
+    return {
+        pattern: approach.pattern,
+        applicability: approach.applicability,
+        reason: approach.reason,
+        conditions: Array.isArray(approach.conditions)
+            ? approach.conditions
+            : [],
+        dataStructures: approach.dataStructures.map(structure => ({
+            name: structure.name,
+            role: structure.role,
+            reason: structure.reason
+        }))
+    };
 }
 
 
@@ -543,6 +557,156 @@ If constraints are missing or the selected conditional
 approach cannot safely be applied, explain the issue.
 
 Do not fabricate an executable visualization plan.
+
+
+========================================
+DSA_L VISUALIZATION OUTPUT CONTRACT
+========================================
+
+Only use visualizer IDs and data structures supplied in availableVisualizers.
+
+Every visualization must contain:
+{
+  "id": "unique-id",
+  "structure": "registered structure name",
+  "visualizerId": "registered visualizer ID",
+  "role": "primary",
+  "initialState": {}
+}
+
+SUPPORTED DATA FORMATS
+
+1. ARRAY — visualizerId: "array"
+
+{
+  "array": [
+    {"id": "a1", "value": 10},
+    {"id": "a2", "value": 20}
+  ]
+}
+
+Array metadata:
+- activeIndexes
+- comparingIndexes
+- swappingIndexes
+- sortedIndexes
+
+Allowed operations:
+render, compare, highlight, swap, markSorted, complete.
+
+2. LINKED LIST — visualizerId: "linked-list"
+
+{
+  "headId": "n1",
+  "nodes": [
+    {"id": "n1", "value": 10, "nextId": "n2"},
+    {"id": "n2", "value": 20, "nextId": null}
+  ]
+}
+
+Use explicit nextId references. Use null for the end of the list.
+Every reference must point to an existing node.
+
+Metadata:
+- activeNodeIds
+- comparingNodeIds
+- updatedNodeIds
+
+Allowed operations:
+render, highlight, compare, updateLink, reverseLink,
+insertNode, removeNode, complete.
+
+3. BINARY TREE — visualizerId: "tree"
+
+{
+  "rootId": "n1",
+  "nodes": [
+    {"id": "n1", "value": 10, "leftId": "n2", "rightId": "n3"},
+    {"id": "n2", "value": 5, "leftId": null, "rightId": null},
+    {"id": "n3", "value": 15, "leftId": null, "rightId": null}
+  ]
+}
+
+Every child reference must point to an existing node.
+Each node must have at most one parent.
+The structure must be a valid connected binary tree.
+
+Metadata:
+- activeNodeIds
+- comparingNodeIds
+- visitedNodeIds
+
+Allowed operations:
+render, highlight, compare, visit, complete.
+
+4. GRAPH — visualizerId: "graph"
+
+{
+  "vertices": [
+    {"id": "v1", "label": "A"},
+    {"id": "v2", "label": "B"}
+  ],
+  "edges": [
+    {"id": "e1", "from": "v1", "to": "v2", "directed": true}
+  ]
+}
+
+Edges must reference existing vertices.
+Optional edge properties: weight, directed.
+Optional vertex properties: value, x, y.
+
+Metadata:
+- activeVertexIds
+- visitedVertexIds
+- frontierVertexIds
+- activeEdgeIds
+- traversedEdgeIds
+
+Allowed operations:
+render, highlight, compare, visit, enqueue, traverseEdge, complete.
+
+========================================
+MANDATORY SNAPSHOT RULES
+========================================
+
+1. Each execution step must contain a visualStates entry for EVERY
+   configured visualization ID.
+
+2. Each visualStates entry must contain:
+{
+  "operation": "one allowed operation",
+  "state": {},
+  "metadata": {}
+}
+
+3. Every state must be a complete snapshot, not a partial update.
+   Previous and Next restore snapshots independently.
+
+4. Preserve stable IDs between consecutive steps.
+   Do not generate new IDs for unchanged elements.
+
+5. Variables must contain the current values of relevant pointers,
+   indices, counters, recursion parameters and temporary variables.
+
+6. codeLine must be a zero-based line index into the supplied code.
+
+7. Never use unsupported operation names such as "sort", "move",
+   "delete" or "update" unless explicitly listed above.
+   Use the closest registered operation.
+
+8. The operation describes the visual action; the state contains
+   the complete resulting structure.
+
+9. Every step must explain WHY the operation is performed.
+
+10. Do not generate AI JavaScript for execution. JavaScript is
+    display-only. Generate structured states and explanations.
+
+11. Do not invent additional visualizer IDs or capabilities.
+
+12. Keep the execution trace within the configured maximum
+    number of steps.
+
 
 Return JSON only. No Markdown.
 `;

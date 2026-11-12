@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DSA_L Graphics Integration Test</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #111827;
+            color: #f8fafc;
+            font-family: Arial, sans-serif;
+        }
+
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        h1 { font-size: 21px; }
+
+        .controls {
+            display: flex;
+            gap: 9px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        button {
+            min-height: 38px;
+            padding: 8px 15px;
+            border: 1px solid #475569;
+            border-radius: 7px;
+            background: #1e293b;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        #status {
+            color: #86efac;
+            font-size: 13px;
+            margin: 12px 0 20px;
+        }
+
+        #workspace {
+            width: 100%;
+        }
+
+        .visualization-manager-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .visualization-manager-panel {
+            min-width: 0;
+            overflow: auto;
+            border: 1px solid #334155;
+            border-radius: 9px;
+            background: #1e293b;
+        }
+
+        .visualization-manager-canvas {
+            width: 100%;
+            height: 380px;
+            min-width: 0;
+            overflow: auto;
+        }
+
+        .konvajs-content {
+            margin-inline: auto;
+        }
+
+        @media (max-width: 850px) {
+            .visualization-manager-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="test-header">
+        <div>
+            <h1>DSA_L — Graphics Integration Test</h1>
+            <div>Array · Linked List · Binary Tree · Graph</div>
+        </div>
+
+        <div class="controls">
+            <button id="previous">◀ Previous</button>
+            <button id="play">▶ Play</button>
+            <button id="pause">Ⅱ Pause</button>
+            <button id="next">Next ▶</button>
+            <button id="restart">↺ Restart</button>
+        </div>
+    </header>
+
+    <div id="status" aria-live="polite">Initializing graphics engine...</div>
+
+    <main id="workspace"></main>
+
+    <script src="../js/vendor/konva.min.js"></script>
+    <script type="module" src="./graphics-integration.js"></script>
+</body>
+</html>

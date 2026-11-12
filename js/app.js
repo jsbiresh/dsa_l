@@ -1013,9 +1013,8 @@ function selectApproach(index) {
     elements.selectedApproachConditions.appendChild(item);
   });
 
-  // Data structures are determined by AI, not selected manually.
-  elements.visualizationFocusStatus.textContent =
-    "Data structures will be selected automatically.";
+  // Render the data structures associated with this approach.
+  renderApproachDataStructures(approach);
 
   elements.approvalStatus.textContent =
     "Approach selected. Ready to generate animation.";

@@ -26,7 +26,7 @@ export class ExecutionEngine {
      * @param {string} algorithmName
      * @param {object} initialState
      */
-    initialize(algorithmName, initialState) {
+    initialize(algorithmName, initialState, initialVisualStates = null) {
 
         if (typeof algorithmName !== "string" || !algorithmName.trim()) {
             throw new TypeError("Algorithm name must be a non-empty string.");
@@ -39,7 +39,7 @@ export class ExecutionEngine {
         this.algorithmName = algorithmName;
 
         this.counter.reset();
-        this.recorder.reset(initialState);
+        this.recorder.reset(initialState, initialVisualStates);
 
         this.isInitialized = true;
         this.isExecuting = false;

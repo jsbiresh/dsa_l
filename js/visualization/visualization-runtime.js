@@ -1,124 +1,93 @@
 /**
- * DSA_L — Visualization Runtime
+ * DSA_L — Multi-Structure Visualization Runtime
  *
- * Converts a validated visualization plan into the
- * deterministic execution-trace format used by DSA_L.
- *
- * This module:
- * - Does not execute AI-generated JavaScript.
- * - Does not manipulate the DOM.
- * - Does not implement algorithms.
- * - Converts validated snapshots into execution steps.
+ * Converts a validated AI plan into deterministic execution steps.
+ * AI-generated JavaScript is displayed, never executed.
  */
 
-import {
-    validateVisualizationPlan
-} from "./visualization-plan.js";
+import { validateVisualizationPlan } from "./visualization-plan.js";
 
-
-/**
- * Convert a validated plan into an execution trace.
- *
- * Current runtime support:
- * - One Array visualization per execution plan.
- *
- * Additional visualization types will be added through
- * the visualizer registry as their implementations become ready.
- *
- * @param {object} rawPlan
- * @returns {object} Execution trace
- */
 export function createExecutionTrace(rawPlan) {
-
     const plan = validateVisualizationPlan(rawPlan);
 
-    if (plan.visualizations.length !== 1) {
-        throw new Error(
-            "The current runtime supports one visualization at a time. " +
-            "Multi-structure execution will be enabled as additional " +
-            "visualizers are implemented."
-        );
-    }
+    const primaryVisualization = plan.visualizations[0];
 
-    const visualization = plan.visualizations[0];
-
-    if (visualization.visualizerId !== "array") {
-        throw new Error(
-            `The ${visualization.visualizerId} visualizer is not supported by the current runtime.`
-        );
-    }
-
-    const initialState = structuredClone(
-        visualization.initialState
+    const initialVisualStates = Object.fromEntries(
+        plan.visualizations.map(visualization => [
+            visualization.id,
+            {
+                state: structuredClone(visualization.initialState),
+                metadata: {}
+            }
+        ])
     );
 
     const steps = plan.steps.map((step, index) => {
+        const visualStates = Object.fromEntries(
+            plan.visualizations.map(visualization => {
+                const visualState = step.visualStates[visualization.id];
 
-        const visualState =
-            step.visualStates[visualization.id];
+                if (!visualState) {
+                    throw new Error(
+                        `Execution step ${index} is missing visualization '${visualization.id}'.`
+                    );
+                }
 
-        if (!visualState) {
-            throw new Error(
-                `Execution step ${index} is missing its visualization state.`
-            );
-        }
+                return [
+                    visualization.id,
+                    {
+                        operation: visualState.operation,
+                        state: structuredClone(visualState.state),
+                        metadata: structuredClone(visualState.metadata || {})
+                    }
+                ];
+            })
+        );
 
         return {
-
             action: step.action,
 
+            // Compatibility alias for existing inspectors and array traces.
             state: structuredClone(
-                visualState.state
+                visualStates[primaryVisualization.id].state
             ),
+
+            // Full snapshot for all configured renderers.
+            visualStates,
 
             codeLine: step.codeLine,
-
-            variables: structuredClone(
-                step.variables
-            ),
-
+            variables: structuredClone(step.variables),
             explanation: step.explanation,
-
-            metrics: structuredClone(
-                step.metrics
-            ),
-
+            metrics: structuredClone(step.metrics),
             metadata: structuredClone(
-                visualState.metadata
+                visualStates[primaryVisualization.id].metadata
             )
-
         };
-
     });
 
     return {
-
         algorithmName: plan.selectedApproach.pattern,
-
         pattern: plan.selectedApproach.pattern,
-
         applicability: plan.selectedApproach.applicability,
 
-        initialState,
+        initialState: structuredClone(
+            primaryVisualization.initialState
+        ),
+
+        initialVisualStates,
+
+        visualizations: structuredClone(plan.visualizations),
 
         code: plan.code.source,
-
         steps,
 
         input: structuredClone(plan.input),
-
         complexity: structuredClone(plan.complexity),
 
         summary: {
-
             timeComplexity: plan.complexity.time,
-
             spaceComplexity: plan.complexity.space,
-
             totalSteps: steps.length
-
         }
-
     };
-
 }

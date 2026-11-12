@@ -10,6 +10,9 @@
  */
 
 import { generateJSON } from "./ollama-client.js";
+import { generateRuleBasedRecommendations } from "../intelligence/recommendation-engine.js";
+import { integrateAnalysis } from "../intelligence/analysis-integrator.js";
+
 
 import { PATTERNS } from "../registry/pattern-registry.js";
 import { DATA_STRUCTURES } from "../registry/data-structure-registry.js";
@@ -230,7 +233,40 @@ export async function analyzeDSARequest(userRequest) {
 
   const result = await generateJSON(systemPrompt, userPrompt);
 
-  return validateAnalysis(result);
+  const validatedAnalysis = validateAnalysis(result);
+
+  return applyDeterministicIntelligence(
+    request,
+    validatedAnalysis
+  );
+}
+
+/**
+ * Apply curated reasoning after validating the local AI response.
+ *
+ * Custom visualization requests retain their original mode.
+ * Problem-solving requests use curated recommendations whenever
+ * an applicable local rule exists.
+ */
+export function applyDeterministicIntelligence(
+  request,
+  validatedAnalysis
+) {
+  if (validatedAnalysis.mode === "custom_visualization") {
+    return {
+      ...validatedAnalysis,
+      recommendationSource: "custom_visualization",
+      recommendationStatus: "not_applicable"
+    };
+  }
+
+  const ruleAnalysis =
+    generateRuleBasedRecommendations(request);
+
+  return integrateAnalysis(
+    validatedAnalysis,
+    ruleAnalysis
+  );
 }
 
 /**

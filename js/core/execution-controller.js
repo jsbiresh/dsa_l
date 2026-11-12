@@ -30,13 +30,14 @@ export class ExecutionController {
     /**
      * Initialize a new execution.
      */
-    initialize(algorithmName, initialState) {
+    initialize(algorithmName, initialState, initialVisualStates = null) {
 
         this.pause();
 
         const initialStep = this.engine.initialize(
             algorithmName,
-            initialState
+            initialState,
+            initialVisualStates
         );
 
         this.isInitialized = true;

@@ -54,7 +54,7 @@ export class StateRecorder {
        RESET RECORDER
     ======================================== */
 
-    reset(initialState) {
+    reset(initialState, initialVisualStates = null) {
 
         this.steps = [];
 
@@ -67,6 +67,8 @@ export class StateRecorder {
             action: "INITIALIZE",
 
             state: initialState,
+
+            visualStates: initialVisualStates,
 
             codeLine: null,
 
@@ -140,7 +142,11 @@ export class StateRecorder {
 
             metadata: cloneState(
                 step.metadata ?? {}
-            )
+            ),
+
+            visualStates: step.visualStates
+                ? cloneState(step.visualStates)
+                : null
 
         };
 
