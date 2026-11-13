@@ -218,11 +218,44 @@ IMPORTANT
 /**
  * Analyze a DSA question or custom visualization request.
  */
-export async function analyzeDSARequest(userRequest) {
-  const request = userRequest.trim();
+export async function analyzeDSARequest(userRequest, options = {}) {
+  const request = typeof userRequest === "string"
+    ? userRequest.trim()
+    : "";
 
   if (!request) {
     throw new Error("Please enter a DSA question or visualization request.");
+  }
+
+  // Run deterministic analysis before contacting the local model.
+  // This result remains available even if Ollama fails.
+  const ruleAnalysis = generateRuleBasedRecommendations(request);
+
+  // Explicitly named sorting algorithms do not need an AI guess.
+  // Their local classification is deterministic and registry-validated.
+  const explicitSortingMatch = ruleAnalysis.approaches.find(
+    approach => approach.source === "explicit_named_sorting_algorithm"
+  );
+
+  if (explicitSortingMatch) {
+    const emptyAnalysis = {
+      mode: "problem_solving",
+      requestSummary: request,
+      keywords: [],
+      clues: [],
+      approaches: [],
+      requestedDataStructures: [],
+      reasoning: "",
+      confidence: 1,
+      requiresClarification: false,
+      clarificationQuestion: ""
+    };
+
+    return {
+      ...integrateAnalysis(emptyAnalysis, ruleAnalysis),
+      analysisProvider: "deterministic_fallback",
+      analysisWarning: "Explicit sorting algorithm recognized by DSA_L local rules."
+    };
   }
 
   const systemPrompt = buildSystemPrompt();
@@ -231,14 +264,105 @@ export async function analyzeDSARequest(userRequest) {
     userRequest: request,
   });
 
-  const result = await generateJSON(systemPrompt, userPrompt);
+  const generateModelJSON =
+    typeof options.generateJSON === "function"
+      ? options.generateJSON
+      : generateJSON;
 
-  const validatedAnalysis = validateAnalysis(result);
+  let validatedAnalysis;
 
-  return applyDeterministicIntelligence(
-    request,
-    validatedAnalysis
-  );
+  try {
+    const result = await generateModelJSON(
+      systemPrompt,
+      userPrompt,
+      { numPredict: 750 }
+    );
+
+    validatedAnalysis = validateAnalysis(result);
+  } catch (error) {
+    return buildDeterministicFallback(
+      request,
+      ruleAnalysis,
+      error
+    );
+  }
+
+  return {
+    ...applyDeterministicIntelligence(
+      request,
+      validatedAnalysis,
+      ruleAnalysis
+    ),
+    analysisProvider: "qwen",
+    analysisWarning: ""
+  };
+}
+
+/**
+ * Use curated recommendations when local AI output is unavailable
+ * or fails validation. Never invent recommendations for unmatched
+ * problems.
+ */
+function buildDeterministicFallback(request, ruleAnalysis, error) {
+  const failureReason =
+    error instanceof Error
+      ? error.message
+      : "Unknown local AI error.";
+
+  const warning =
+    `Qwen analysis unavailable (${failureReason}). ` +
+    "DSA_L used its local deterministic analysis.";
+
+  const emptyAnalysis = {
+    mode: "problem_solving",
+    requestSummary: request,
+    keywords: [],
+    clues: [],
+    approaches: [],
+    requestedDataStructures: [],
+    reasoning: "",
+    confidence: 0,
+    requiresClarification: false,
+    clarificationQuestion: ""
+  };
+
+  // A verified rule match is sufficient to continue.
+  if (ruleAnalysis.hasCuratedRecommendations) {
+    return {
+      ...integrateAnalysis(emptyAnalysis, ruleAnalysis),
+      analysisProvider: "deterministic_fallback",
+      analysisWarning: warning
+    };
+  }
+
+  // No matching rule and no valid AI response:
+  // expose the limitation without fabricating an approach.
+  return {
+    ...emptyAnalysis,
+
+    keywords: ruleAnalysis.properties
+      .map(property => property.evidence)
+      .filter(Boolean),
+
+    primaryPattern: "",
+    secondaryPatterns: [],
+    recommendedDataStructures: [],
+    requestedDataStructure: "",
+
+    reasoning:
+      "DSA_L has no curated recommendation for this request, " +
+      "and the local AI model could not provide a validated analysis. " +
+      "No algorithmic approach has been recommended.",
+
+    recommendationSource: "none",
+    recommendationStatus: "no_curated_match",
+
+    matchedProperties: ruleAnalysis.properties,
+
+    analysisProvider: "deterministic_fallback",
+    analysisWarning:
+      `${warning} No curated recommendation rule matched this request.`
+  };
 }
 
 /**
@@ -250,7 +374,8 @@ export async function analyzeDSARequest(userRequest) {
  */
 export function applyDeterministicIntelligence(
   request,
-  validatedAnalysis
+  validatedAnalysis,
+  precomputedRuleAnalysis = null
 ) {
   if (validatedAnalysis.mode === "custom_visualization") {
     return {
@@ -260,7 +385,7 @@ export function applyDeterministicIntelligence(
     };
   }
 
-  const ruleAnalysis =
+  const ruleAnalysis = precomputedRuleAnalysis ||
     generateRuleBasedRecommendations(request);
 
   return integrateAnalysis(

@@ -19,6 +19,10 @@ import {
     getVisualizerById
 } from "./visualizer-registry.js";
 
+import {
+    validateHashMapState
+} from "../graphics/models/hash-map-model.js";
+
 
 export const PLAN_CONFIG = Object.freeze({
     schemaVersion: 1,
@@ -42,6 +46,16 @@ const VISUALIZER_OPERATIONS = Object.freeze({
         swap: ["swap-highlighting", "physical-element-movement"],
         markSorted: ["sorted-element-highlighting"],
         complete: ["element-rendering"]
+    },
+
+    "hash-map": {
+        render: ["bucket-rendering", "entry-rendering"],
+        hash: ["hash-calculation", "active-bucket-highlighting"],
+        lookup: ["entry-lookup", "active-entry-highlighting"],
+        insert: ["entry-insertion", "collision-chaining"],
+        update: ["entry-update", "active-entry-highlighting"],
+        delete: ["entry-deletion", "active-entry-highlighting"],
+        complete: ["bucket-rendering", "entry-rendering"]
     },
 
     "linked-list": {
@@ -581,6 +595,16 @@ function validateVisualState(visualizerId, state) {
 
             fail(`Invalid array element at index ${index}.`);
         });
+
+        return;
+    }
+
+    if (visualizerId === "hash-map") {
+        try {
+            validateHashMapState(state);
+        } catch (error) {
+            fail(`Invalid Hash Map state: ${error.message}`);
+        }
 
         return;
     }

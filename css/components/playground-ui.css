@@ -273,3 +273,163 @@
         grid-template-columns: minmax(0, 1fr);
     }
 }
+
+
+/* ============================================
+   UI LAYOUT FIX — ANALYSIS AND STRUCTURE OPTIONS
+============================================ */
+
+/* Give the analysis panel sufficient space and its own scrollbar. */
+.ai-analysis-panel {
+    display: block;
+    flex: 0 1 auto;
+    width: 100%;
+    min-height: 0;
+    max-height: min(42vh, 360px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-primary) var(--panel-secondary);
+}
+
+/* Restore the data-structure selection controls.
+   The previous playground rule incorrectly hid this entire section. */
+.selected-approach-structures {
+    display: block !important;
+    min-width: 0;
+    margin-top: 16px;
+}
+
+.selected-approach-panel {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.approach-data-structures {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.approach-structure-option {
+    min-height: 36px;
+}
+
+/* Allow the canvas to use the remaining workspace height. */
+.visualization-section {
+    min-width: 0;
+    min-height: 0;
+}
+
+.visualization-canvas {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 220px;
+}
+
+/* Smaller screens need a little more analysis scrolling space. */
+@media (max-width: 900px) {
+    .ai-analysis-panel {
+        max-height: 48vh;
+    }
+}
+
+@media (max-width: 600px) {
+    .ai-analysis-panel {
+        max-height: 52vh;
+        padding: 12px;
+    }
+
+    .approach-data-structures {
+        gap: 7px;
+    }
+}
+
+/* ============================================
+   DSA_L SPACIOUS PLAYGROUND OVERRIDE
+============================================ */
+
+/* Keep analysis useful without allowing it to dominate the screen. */
+.ai-analysis-panel {
+    flex: 0 1 auto;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+/* Give the visualization section a meaningful share of the viewport. */
+.visualization-section {
+    min-width: 0;
+    min-height: 72vh;
+}
+
+/* Make the main visualization workspace substantially larger. */
+.visualization-canvas {
+    width: 100%;
+    min-width: 0;
+    min-height: clamp(480px, 68vh, 760px);
+    height: clamp(480px, 68vh, 760px);
+    flex: 1 1 auto;
+    overflow: auto;
+}
+
+/* Two large side-by-side panels on desktop. */
+.visualization-manager-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 18px;
+    min-height: 100%;
+}
+
+.visualization-manager-panel {
+    min-height: clamp(500px, 68vh, 760px);
+    border-radius: 12px;
+}
+
+.visualization-manager-canvas {
+    height: clamp(460px, 64vh, 700px);
+    min-height: 460px;
+    overflow: auto;
+}
+
+/* One large panel when only one renderer is configured. */
+.visualization-manager-grid[data-count="1"] {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+/* Keep the workspace usable on narrower screens. */
+@media (max-width: 900px) {
+    .ai-analysis-panel {
+        max-height: 32vh;
+    }
+
+    .visualization-section {
+        min-height: 65vh;
+    }
+
+    .visualization-canvas {
+        min-height: 520px;
+        height: 65vh;
+    }
+
+    .visualization-manager-canvas {
+        height: 500px;
+        min-height: 500px;
+    }
+}
+
+@media (max-width: 600px) {
+    .visualization-manager-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .visualization-manager-panel {
+        min-height: 480px;
+    }
+
+    .visualization-manager-canvas {
+        height: 460px;
+        min-height: 460px;
+    }
+}

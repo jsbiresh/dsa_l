@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DSA_L — Array + Hash Map Integration</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 22px;
+            background: #111827;
+            color: #f8fafc;
+            font-family: Arial, sans-serif;
+        }
+
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 18px;
+        }
+
+        h1 {
+            font-size: 21px;
+            margin: 0 0 8px;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        button {
+            min-height: 38px;
+            padding: 8px 14px;
+            border: 1px solid #475569;
+            border-radius: 7px;
+            background: #1e293b;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        #status {
+            padding: 12px;
+            margin: 12px 0 18px;
+            border: 1px solid #334155;
+            border-radius: 7px;
+            background: #172333;
+            color: #86efac;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        #workspace {
+            width: 100%;
+        }
+
+        .visualization-manager-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .visualization-manager-panel {
+            min-width: 0;
+            overflow: auto;
+            border: 1px solid #334155;
+            border-radius: 9px;
+            background: #1e293b;
+        }
+
+        .visualization-manager-panel::before {
+            display: block;
+            padding: 12px 14px 0;
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .visualization-manager-panel[data-visualization-id="array-main"]::before {
+            content: "ARRAY · INPUT";
+        }
+
+        .visualization-manager-panel[data-visualization-id="hash-main"]::before {
+            content: "HASH MAP · AUXILIARY";
+        }
+
+        .visualization-manager-canvas {
+            width: 100%;
+            height: 440px;
+            min-width: 0;
+            overflow: auto;
+        }
+
+        .konvajs-content {
+            margin-inline: auto;
+        }
+
+        @media (max-width: 950px) {
+            .visualization-manager-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div>
+            <h1>DSA_L — Hash Map Integration Test</h1>
+            <div class="subtitle">
+                Two Sum · Array + Hash Map · Separate Chaining
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="previous">◀ Previous</button>
+            <button id="play">▶ Play</button>
+            <button id="pause">Ⅱ Pause</button>
+            <button id="next">Next ▶</button>
+            <button id="restart">↺ Restart</button>
+        </div>
+    </header>
+
+    <div id="status" aria-live="polite">
+        Initializing Array and Hash Map renderers...
+    </div>
+
+    <main id="workspace"></main>
+
+    <script src="../js/vendor/konva.min.js"></script>
+    <script type="module" src="./hash-map-integration.js"></script>
+</body>
+</html>

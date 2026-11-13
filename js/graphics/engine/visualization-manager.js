@@ -2,13 +2,15 @@ import { ArrayRenderer } from "../renderers/array-renderer.js";
 import { LinkedListRenderer } from "../renderers/linked-list-renderer.js";
 import { BinaryTreeRenderer } from "../renderers/binary-tree-renderer.js";
 import { GraphRenderer } from "../renderers/graph-renderer.js";
+import { HashMapRenderer } from "../renderers/hash-map-renderer.js";
 
 const RENDERER_TYPES = Object.freeze({
     array: ArrayRenderer,
     "linked-list": LinkedListRenderer,
     tree: BinaryTreeRenderer,
     "binary-tree": BinaryTreeRenderer,
-    graph: GraphRenderer
+    graph: GraphRenderer,
+    "hash-map": HashMapRenderer
 });
 
 export class VisualizationManager {

@@ -2,7 +2,7 @@
    DSA_L — APPLICATION ENTRY POINT
 ============================================ */
 
-import { ArrayRenderer } from "./graphics/renderers/array-renderer.js";
+import { VisualizationManager } from "./graphics/engine/visualization-manager.js";
 
 import { ExecutionController } from "./core/execution-controller.js";
 
@@ -135,7 +135,18 @@ let selectedVisualizationFocus = null;
    4. CORE COMPONENTS
 ============================================ */
 
-const arrayVisualizer = new ArrayRenderer(elements.visualizationCanvas);
+const visualizationManager =
+  new VisualizationManager(elements.visualizationCanvas);
+
+const initialVisualizationReady = visualizationManager.configure([
+  {
+    id: "main",
+    structure: "Array",
+    visualizerId: "array",
+    role: "primary",
+    initialState: { array: [] }
+  }
+]);
 
 const executionController = new ExecutionController(handleExecutionStep);
 
@@ -304,7 +315,7 @@ function initializeAlgorithmDemo() {
   }
 }
 
-function loadBubbleSortDemo() {
+async function loadBubbleSortDemo() {
   try {
     executionController.pause();
 
@@ -320,10 +331,22 @@ function loadBubbleSortDemo() {
     appState.totalSteps = trace.steps.length;
 
 // Initialize the execution engine.
-executionController.initialize(
-    trace.algorithmName,
-    trace.initialState
-);
+await initialVisualizationReady;
+
+    await visualizationManager.configure([
+      {
+        id: "main",
+        structure: "Array",
+        visualizerId: "array",
+        role: "primary",
+        initialState: trace.initialState
+      }
+    ]);
+
+    executionController.initialize(
+      trace.algorithmName,
+      trace.initialState
+    );
 
 // Register every recorded algorithm step.
 trace.steps.forEach(step => {
@@ -333,10 +356,10 @@ trace.steps.forEach(step => {
 });
 
 // Return execution to the initial state.
-executionController.restart();
+await executionController.restart();
 
     // Display the initial array.
-    arrayVisualizer.render(trace.initialState, {}, { animate: false });
+
 
     // Display algorithm code.
     renderCode(trace.code);
@@ -390,7 +413,7 @@ async function handleExecutionStep(step) {
   const metadata = step.metadata || {};
 
   // Start the visual transition.
-  const rendering = arrayVisualizer.render(step.state, metadata, {
+  const rendering = visualizationManager.renderStep(step, {
     animate: true
   });
 
@@ -661,11 +684,25 @@ async function handleProblemAnalysis() {
 
     elements.aiAnalysisPanel.hidden = false;
 
-    elements.analysisStatus.textContent =
-      "Analysis completed successfully.";
+    const usedFallback =
+      analysis.analysisProvider === "deterministic_fallback";
 
-    elements.aiStatus.textContent =
-      "AI: Connected — Qwen 2.5 Coder";
+    if (usedFallback && analysis.recommendationStatus === "curated") {
+      elements.analysisStatus.textContent =
+        "Analysis completed using curated local rules. Qwen was unavailable.";
+      elements.aiStatus.textContent =
+        "AI: Local rules active";
+    } else if (usedFallback) {
+      elements.analysisStatus.textContent =
+        "No verified recommendation is available. Qwen analysis failed.";
+      elements.aiStatus.textContent =
+        "AI: Local fallback — no curated match";
+    } else {
+      elements.analysisStatus.textContent =
+        "Analysis completed successfully.";
+      elements.aiStatus.textContent =
+        "AI: Connected — Qwen 2.5 Coder";
+    }
 
   } catch (error) {
     elements.analysisStatus.textContent = error.message;
@@ -728,7 +765,14 @@ async function handlePlayAnimation() {
       "Animation is running.";
 
     elements.aiStatus.textContent =
-      "AI: Connected — Qwen 2.5 Coder";
+      plan.planningSource === "deterministic_fallback"
+        ? "AI: Local deterministic planner"
+        : "AI: Connected — Qwen 2.5 Coder";
+
+    if (plan.planningSource === "deterministic_fallback") {
+      elements.approvalStatus.textContent =
+        `Qwen planning unavailable. A validated local ${plan.selectedApproach.pattern} plan was generated.`;
+    }
 
   } catch (error) {
     elements.approvalStatus.textContent = error.message;
@@ -764,9 +808,14 @@ async function loadGeneratedTrace(trace, plan) {
   elements.codeExecutionStatus.textContent = "LOADING";
 
   // Initialise the existing execution engine.
+  await initialVisualizationReady;
+
+  await visualizationManager.configure(trace.visualizations);
+
   executionController.initialize(
     trace.algorithmName,
-    trace.initialState
+    trace.initialState,
+    trace.initialVisualStates
   );
 
   // Register deterministic steps.
@@ -774,12 +823,7 @@ async function loadGeneratedTrace(trace, plan) {
     executionController.recordStep(step);
   });
 
-  // Render the initial visual state.
-  await arrayVisualizer.render(
-    trace.initialState,
-    {},
-    { animate: false }
-  );
+  // VisualizationManager.configure() renders all initial visual states.
 
   // Display the JavaScript supplied by the validated plan.
   renderCode(trace.code);

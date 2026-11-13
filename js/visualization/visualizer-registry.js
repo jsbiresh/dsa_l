@@ -24,9 +24,20 @@ export const VISUALIZER_REGISTRY = Object.freeze([
     {
         id: "hash-map",
         name: "Hash Map",
-        supportedStructures: ["Hash Map", "Hash Set"],
-        status: "planned",
-        features: []
+        supportedStructures: ["Hash Map"],
+        status: "implemented",
+        features: [
+            "bucket-rendering",
+            "entry-rendering",
+            "hash-calculation",
+            "active-bucket-highlighting",
+            "entry-lookup",
+            "active-entry-highlighting",
+            "entry-insertion",
+            "collision-chaining",
+            "entry-update",
+            "entry-deletion"
+        ]
     },
     {
         id: "pointer",

@@ -31,6 +31,11 @@ import {
     validateVisualizationPlan
 } from "../visualization/visualization-plan.js";
 
+import {
+    hashKey
+} from "../graphics/models/hash-map-model.js";
+import { buildDeterministicSortingPlan } from "./deterministic-plan-builders.js";
+
 
 /**
  * Planner generation settings.
@@ -58,12 +63,10 @@ const PLANNER_CONFIG = Object.freeze({
  *
  * @returns {Promise<object>} Validated visualization plan.
  */
-export async function createVisualizationPlan({
-    question,
-    analysis,
-    selectedApproach
-}) {
-
+export async function createVisualizationPlan(
+    { question, analysis, selectedApproach },
+    dependencies = {}
+) {
     validatePlannerInput({
         question,
         analysis,
@@ -75,9 +78,27 @@ export async function createVisualizationPlan({
         selectedApproach
     );
 
-    const availableVisualizers = resolveAvailableVisualizers(
-        approach
-    );
+    const availableVisualizers = resolveAvailableVisualizers(approach);
+
+    // Explicitly named sorting algorithms have validated local builders.
+    // Prefer them to model-generated plans for deterministic execution.
+    if (/\b(?:bubble|selection|insertion|merge|quick|heap)\s*sort\b/i.test(question)) {
+        const localPlan = buildDeterministicSortingPlan(
+            question,
+            approach,
+            availableVisualizers
+        );
+
+        if (localPlan) {
+            verifyPlanMatchesSelection(localPlan, approach);
+
+            return {
+                ...localPlan,
+                planningSource: "deterministic_fallback",
+                planningWarning: "Explicitly named sorting algorithm handled by the validated local planner."
+            };
+        }
+    }
 
     const systemPrompt = buildPlannerSystemPrompt({
         approach,
@@ -85,50 +106,395 @@ export async function createVisualizationPlan({
     });
 
     const userPrompt = JSON.stringify({
-
         question,
-
-        selectedApproach: {
-
-            pattern: approach.pattern,
-
-            applicability: approach.applicability,
-
-            reason: approach.reason,
-
-            conditions: approach.conditions,
-
-            dataStructures: approach.dataStructures
-
-        },
-
+        selectedApproach: approach,
         availableVisualizers
-
     });
 
-    const rawPlan = await generateJSON(
-        systemPrompt,
-        userPrompt,
-        PLANNER_CONFIG
-    );
+    const plannerGenerateJSON =
+        typeof dependencies.generateJSON === "function"
+            ? dependencies.generateJSON
+            : generateJSON;
 
-    if (rawPlan?.error) {
-        throw new Error(
-            rawPlan.error.message ||
-            "The AI could not create a visualization plan."
+    try {
+        const rawPlan = await plannerGenerateJSON(
+            systemPrompt,
+            userPrompt,
+            PLANNER_CONFIG
         );
+
+        if (rawPlan?.error) {
+            throw new Error(
+                rawPlan.error.message ||
+                "The AI could not create a visualization plan."
+            );
+        }
+
+        const validatedPlan = validateVisualizationPlan(rawPlan);
+
+        verifyPlanMatchesSelection(validatedPlan, approach);
+
+        return {
+            ...validatedPlan,
+            planningSource: "qwen",
+            planningWarning: ""
+        };
+    } catch (error) {
+        console.warn(
+            "Qwen planning failed. Trying deterministic fallback.",
+            error
+        );
+
+        const fallbackPlan =
+            buildDeterministicSortingPlan(
+                question,
+                approach,
+                availableVisualizers
+            ) ||
+            buildDeterministicTwoSumPlan(
+                question,
+                approach,
+                availableVisualizers
+            );
+
+        if (!fallbackPlan) {
+            throw error;
+        }
+
+        verifyPlanMatchesSelection(fallbackPlan, approach);
+
+        return {
+            ...fallbackPlan,
+            planningSource: "deterministic_fallback",
+            planningWarning: error.message
+        };
+    }
+}
+
+
+/**
+ * Supports only explicit numeric Two Sum inputs using the
+ * curated Hashing approach and implemented Array + Hash Map renderers.
+ */
+export function buildDeterministicTwoSumPlan(
+    question,
+    approach,
+    availableVisualizers
+) {
+    if (
+        approach?.pattern !== "Hashing" ||
+        !Array.isArray(approach.dataStructures)
+    ) {
+        return null;
     }
 
-    const validatedPlan = validateVisualizationPlan(rawPlan);
-
-    verifyPlanMatchesSelection(
-        validatedPlan,
-        approach
+    const structures = new Set(
+        approach.dataStructures.map(item => item.name)
     );
+
+    const visualizers = new Set(
+        availableVisualizers.map(item => item.id)
+    );
+
+    if (
+        !structures.has("Array") ||
+        !structures.has("Hash Map") ||
+        !visualizers.has("array") ||
+        !visualizers.has("hash-map")
+    ) {
+        return null;
+    }
+
+    const arrayMatch = question.match(
+        /\[\s*(-?\d+(?:\.\d+)?(?:\s*,\s*-?\d+(?:\.\d+)?)+)\s*\]/
+    );
+
+    const targetMatch = question.match(
+        /\btarget\b\s*(?:=|:|is|of)?\s*(-?\d+(?:\.\d+)?)/i
+    );
+
+    if (!arrayMatch || !targetMatch) return null;
+
+    const nums = arrayMatch[1].split(",").map(Number);
+    const target = Number(targetMatch[1]);
+
+    if (
+        nums.length < 2 ||
+        nums.length > 50 ||
+        !nums.every(Number.isFinite) ||
+        !Number.isFinite(target)
+    ) {
+        return null;
+    }
+
+    const capacity = 5;
+    const entries = [];
+    const seen = new Map();
+    const steps = [];
+
+    const arrayState = {
+        array: nums.map((value, index) => ({
+            id: `element-${index}`,
+            value
+        }))
+    };
+
+    const code = [
+        "const seen = new Map();",
+        "for (let i = 0; i < nums.length; i++) {",
+        "  const current = nums[i];",
+        "  const complement = target - current;",
+        "  if (seen.has(complement)) {",
+        "    return [seen.get(complement), i];",
+        "  }",
+        "  seen.set(current, i);",
+        "}",
+        "return [];"
+    ].join("\n");
+
+    function addStep(
+        action,
+        codeLine,
+        explanation,
+        variables,
+        arrayOperation,
+        arrayMetadata,
+        hashOperation,
+        hashMetadata,
+        metrics = {}
+    ) {
+        steps.push({
+            action,
+            codeLine,
+            explanation,
+            variables,
+            metrics,
+            visualStates: {
+                "array-main": {
+                    operation: arrayOperation,
+                    state: structuredClone(arrayState),
+                    metadata: structuredClone(arrayMetadata)
+                },
+                "hash-main": {
+                    operation: hashOperation,
+                    state: {
+                        capacity,
+                        entries: entries.map(entry => ({ ...entry }))
+                    },
+                    metadata: structuredClone(hashMetadata)
+                }
+            }
+        });
+    }
+
+    addStep(
+        "INITIALIZE",
+        0,
+        "Create an empty Hash Map to store previously visited values and their original indices.",
+        { target },
+        "render",
+        {},
+        "render",
+        {}
+    );
+
+    let answer = null;
+
+    for (let i = 0; i < nums.length; i++) {
+        const current = nums[i];
+        const complement = target - current;
+        const currentBucket = hashKey(current, capacity);
+        const complementBucket = hashKey(complement, capacity);
+
+        const currentBucketEntries = entries.filter(
+            entry => hashKey(entry.key, capacity) === currentBucket
+        );
+
+        addStep(
+            "HASH_CURRENT_VALUE",
+            2,
+            `Calculate hash(${current}) = ${currentBucket}.`,
+            { index: i, current, target },
+            "highlight",
+            { activeIndexes: [i] },
+            "hash",
+            {
+                activeKey: current,
+                activeBucketIndex: currentBucket,
+                ...(currentBucketEntries.length
+                    ? { collisionBucketIndex: currentBucket }
+                    : {})
+            },
+            { hashCalculations: 1 }
+        );
+
+        const matchingEntry = seen.has(complement)
+            ? entries.find(entry => entry.key === complement)
+            : null;
+
+        const complementBucketEntries = entries.filter(
+            entry => hashKey(entry.key, capacity) === complementBucket
+        );
+
+        addStep(
+            "LOOKUP_COMPLEMENT",
+            4,
+            matchingEntry
+                ? `Complement ${complement} was found in bucket ${complementBucket}.`
+                : `Complement ${complement} is not present in bucket ${complementBucket}.`,
+            { index: i, current, complement, target },
+            "highlight",
+            { activeIndexes: [i] },
+            "lookup",
+            {
+                activeKey: complement,
+                lookupKey: complement,
+                activeBucketIndex: complementBucket,
+                ...(matchingEntry
+                    ? { activeEntryIds: [matchingEntry.id] }
+                    : {
+                        comparingEntryIds:
+                            complementBucketEntries.map(entry => entry.id)
+                    })
+            },
+            { lookups: 1 }
+        );
+
+        if (matchingEntry) {
+            answer = [matchingEntry.value, i];
+
+            addStep(
+                "COMPLETE",
+                5,
+                `Found ${complement} at index ${matchingEntry.value}. ${complement} + ${current} = ${target}.`,
+                {
+                    index: i,
+                    current,
+                    complement,
+                    matchingIndex: matchingEntry.value,
+                    result: answer
+                },
+                "complete",
+                { activeIndexes: answer },
+                "complete",
+                {
+                    activeBucketIndex: complementBucket,
+                    activeEntryIds: [matchingEntry.id]
+                },
+                { lookups: 1 }
+            );
+
+            break;
+        }
+
+        const existing = entries.find(entry => entry.key === current);
+
+        if (existing) {
+            existing.value = i;
+            seen.set(current, i);
+
+            addStep(
+                "UPDATE_EXISTING_KEY",
+                7,
+                `Update the stored index for key ${current} to ${i}.`,
+                { index: i, current },
+                "highlight",
+                { activeIndexes: [i] },
+                "update",
+                {
+                    activeKey: current,
+                    activeBucketIndex: currentBucket,
+                    updatedEntryIds: [existing.id]
+                },
+                { updates: 1 }
+            );
+        } else {
+            const entry = {
+                id: `entry-${i}`,
+                key: current,
+                value: i
+            };
+
+            entries.push(entry);
+            seen.set(current, i);
+
+            addStep(
+                "INSERT_VALUE",
+                7,
+                currentBucketEntries.length
+                    ? `Insert ${current} into bucket ${currentBucket}. Separate chaining preserves the colliding entries.`
+                    : `Insert ${current} with original index ${i} into bucket ${currentBucket}.`,
+                { index: i, current },
+                "highlight",
+                { activeIndexes: [i] },
+                "insert",
+                {
+                    activeKey: current,
+                    activeBucketIndex: currentBucket,
+                    ...(currentBucketEntries.length
+                        ? { collisionBucketIndex: currentBucket }
+                        : {}),
+                    insertedEntryIds: [entry.id]
+                },
+                { insertions: 1 }
+            );
+        }
+    }
+
+    if (!answer) return null;
+
+    const rawPlan = {
+        schemaVersion: 1,
+        requestSummary: `Two Sum using Hashing on ${nums.length} input values.`,
+        selectedApproach: {
+            pattern: "Hashing",
+            applicability: approach.applicability,
+            reason: approach.reason,
+            conditions: [...approach.conditions]
+        },
+        complexity: {
+            time: "O(n) average",
+            space: "O(n)"
+        },
+        input: {
+            source: "provided",
+            parameters: { nums, target },
+            constraints: [
+                "The input contains exactly one valid solution."
+            ]
+        },
+        code: {
+            language: "javascript",
+            source: code
+        },
+        visualizations: [
+            {
+                id: "array-main",
+                structure: "Array",
+                visualizerId: "array",
+                role: "primary",
+                initialState: arrayState
+            },
+            {
+                id: "hash-main",
+                structure: "Hash Map",
+                visualizerId: "hash-map",
+                role: "auxiliary",
+                initialState: {
+                    capacity,
+                    entries: []
+                }
+            }
+        ],
+        steps,
+        confidence: 1
+    };
+
+    const validatedPlan = validateVisualizationPlan(rawPlan);
+    verifyPlanMatchesSelection(validatedPlan, approach);
 
     return validatedPlan;
 }
-
 
 /* ============================================
    INPUT VALIDATION
@@ -403,6 +769,20 @@ Currently, the Array visualizer supports:
 - markSorted
 - complete
 
+The Hash Map visualizer supports:
+
+- render
+- hash
+- lookup
+- insert
+- update
+- delete
+- complete
+
+For Hash Map visualization, use fixed-capacity buckets with separate
+chaining. Each key-value entry must have a stable string ID. Hash Map
+states must contain capacity and a complete entries array.
+
 For array visualization:
 
 Every state must contain:
@@ -594,7 +974,47 @@ Array metadata:
 Allowed operations:
 render, compare, highlight, swap, markSorted, complete.
 
-2. LINKED LIST — visualizerId: "linked-list"
+2. HASH MAP — visualizerId: "hash-map"
+
+{
+  "capacity": 5,
+  "entries": [
+    {"id": "entry-1", "key": 2, "value": 0},
+    {"id": "entry-2", "key": 7, "value": 1}
+  ]
+}
+
+Hash Map rules:
+- capacity must be an integer from 1 through 32.
+- entries must be a complete snapshot of all current key-value pairs.
+- every entry requires a unique stable string ID.
+- keys must be strings or finite numbers.
+- values must be strings, finite numbers, booleans or null.
+- keys must be unique. Update an existing entry instead of duplicating it.
+- numeric keys use ((trunc(key) % capacity) + capacity) % capacity.
+- string keys use a deterministic polynomial hash. For each Unicode
+  code point, hash = (hash * 31 + codePoint) modulo 2^32.
+  The bucket index is hash modulo capacity.
+- colliding keys must remain separate entries. Never overwrite or discard
+  an entry just because another key maps to the same bucket.
+- preserve entry IDs across snapshots when the key remains present.
+
+Hash Map metadata:
+- activeBucketIndex
+- collisionBucketIndex
+- activeKey
+- lookupKey
+- activeEntryIds
+- comparingEntryIds
+- insertedEntryIds
+- updatedEntryIds
+- visitedEntryIds
+- explanation
+
+Allowed operations:
+render, hash, lookup, insert, update, delete, complete.
+
+3. LINKED LIST — visualizerId: "linked-list"
 
 {
   "headId": "n1",
@@ -616,7 +1036,7 @@ Allowed operations:
 render, highlight, compare, updateLink, reverseLink,
 insertNode, removeNode, complete.
 
-3. BINARY TREE — visualizerId: "tree"
+4. BINARY TREE — visualizerId: "tree"
 
 {
   "rootId": "n1",
@@ -639,7 +1059,7 @@ Metadata:
 Allowed operations:
 render, highlight, compare, visit, complete.
 
-4. GRAPH — visualizerId: "graph"
+5. GRAPH — visualizerId: "graph"
 
 {
   "vertices": [
