@@ -30,13 +30,21 @@ function detectNamedSortingAlgorithm(request) {
 }
 
 function detectNamedSearchingAlgorithm(request) {
-  const match = String(request).match(/\b(linear|binary)\s*search\b/i);
+  const match = String(request).match(
+    /\b(?:(linear|binary)\s*search|(lower|upper)\s*bound)\b/i
+  );
 
   if (!match) return null;
 
-  return match[1].toLowerCase() === "linear"
-    ? "Linear Search"
-    : "Binary Search";
+  if (match[1]) {
+    return match[1].toLowerCase() === "linear"
+      ? "Linear Search"
+      : "Binary Search";
+  }
+
+  return match[2].toLowerCase() === "lower"
+    ? "Lower Bound"
+    : "Upper Bound";
 }
 
 export function generateRuleBasedRecommendations(userRequest) {

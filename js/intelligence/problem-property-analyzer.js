@@ -15,6 +15,8 @@ const PROPERTY_RULES = Object.freeze([
     patterns: [
       /\b(?:two[\s-]+sum|pair[\s-]+sum|target[\s-]+sum)\b/i,
 
+      /\b(?:two|2)\s+(?:distinct\s+)?(?:numbers?|values?|elements?)\b[\s\S]{0,100}\bwhose\s+sum\b/i,
+
       /\b(?:two|2)\s+(?:distinct\s+)?(?:numbers?|values?|elements?)\b[\s\S]{0,100}\b(?:sum|adds?\s+up|total)\b[\s\S]{0,80}\btarget\b/i,
 
       /\b(?:sum|adds?\s+up|total)\b[\s\S]{0,80}\btarget\b[\s\S]{0,100}\b(?:two|2)\s+(?:numbers?|values?|elements?)\b/i,
@@ -52,7 +54,8 @@ const PROPERTY_RULES = Object.freeze([
     label: "Array input",
     patterns: [
       /\barray\b/i,
-      /\binteger\s+array\b/i
+      /\binteger\s+array\b/i,
+      /\b(?:nums|arr|values|input)\s*=\s*\[/i
     ]
   },
   {

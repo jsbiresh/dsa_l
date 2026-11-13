@@ -458,9 +458,9 @@
                 <input
                   type="range"
                   id="speedSlider"
-                  min="0.25"
+                  min="0.05"
                   max="3"
-                  step="0.25"
+                  step="0.05"
                   value="1"
                 />
               </div>
@@ -493,7 +493,19 @@
               <span>JavaScript</span>
             </div>
 
-            <div class="code-language">JS</div>
+            <div class="code-header-actions">
+              <div class="code-language">JS</div>
+
+              <button
+                id="toggleCodePanelButton"
+                class="code-panel-toggle"
+                type="button"
+                aria-label="Collapse code panel"
+                aria-expanded="true"
+                aria-controls="codeEditor"
+                title="Collapse code panel"
+              >−</button>
+            </div>
           </div>
 
           <div class="code-toolbar">
@@ -511,9 +523,38 @@
 
           <div class="code-footer">
             <span id="currentLine"> Line: — </span>
-
             <span> JavaScript </span>
           </div>
+
+          <section class="live-remarks" aria-live="polite">
+            <div class="live-remarks-header">
+              <h3>LIVE EXECUTION REMARKS</h3>
+              <span id="liveRemarkStep">WAITING FOR EXECUTION</span>
+            </div>
+
+            <div
+              id="liveRemarkValues"
+              class="live-remark-values"
+            >
+              <span class="live-remarks-placeholder">
+                Variable values will appear here as the algorithm runs.
+              </span>
+            </div>
+
+            <p
+              id="liveRemarkComparison"
+              class="live-remark-comparison"
+            >
+              Step through the algorithm to see what is being compared.
+            </p>
+
+            <p
+              id="liveRemarkNarrative"
+              class="live-remark-narrative"
+            >
+              Each step will explain which operation is happening and why.
+            </p>
+          </section>
         </aside>
       </main>
 
@@ -611,5 +652,102 @@
 
     <script src="js/vendor/konva.min.js"></script>
     <script type="module" src="js/app.js"></script>
-  </body>
+
+<script>
+/* DSA_L_CODE_PANEL_TOGGLE */
+(() => {
+  const panel = document.querySelector(".code-section");
+  const toggle = document.getElementById("toggleCodePanelButton");
+
+  if (!panel || !toggle) return;
+
+  toggle.addEventListener("click", () => {
+    const collapsed = panel.classList.toggle("is-collapsed");
+
+    toggle.textContent = collapsed ? "+" : "−";
+    toggle.setAttribute("aria-expanded", String(!collapsed));
+
+    const label = collapsed
+      ? "Expand code panel"
+      : "Collapse code panel";
+
+    toggle.setAttribute("aria-label", label);
+    toggle.title = label;
+  });
+})();
+</script>
+
+
+<script>
+/* DSA_L_CODE_PANEL_CANVAS_ALIGNMENT */
+(() => {
+    const workspace = document.querySelector(".main-workspace");
+    const visualization = document.querySelector(".visualization-section");
+    const canvas = document.getElementById("visualizationCanvas");
+    const codePanel = document.querySelector(".code-section");
+
+    if (!workspace || !visualization || !canvas || !codePanel) return;
+
+    let frame = 0;
+
+    function updateCodePanelPosition() {
+        cancelAnimationFrame(frame);
+
+        frame = requestAnimationFrame(() => {
+            if (window.innerWidth <= 700) {
+                workspace.style.setProperty("--code-panel-top", "0px");
+                workspace.style.setProperty("--code-panel-height", "100%");
+                return;
+            }
+
+            const workspaceRect = workspace.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+
+            const top = Math.max(0, canvasRect.top - workspaceRect.top);
+            const height = Math.max(0, workspaceRect.height - top);
+
+            workspace.style.setProperty("--code-panel-top", `${top}px`);
+            workspace.style.setProperty("--code-panel-height", `${height}px`);
+        });
+    }
+
+    const resizeObserver = new ResizeObserver(updateCodePanelPosition);
+
+    resizeObserver.observe(workspace);
+    resizeObserver.observe(canvas);
+    resizeObserver.observe(visualization);
+
+    const mutationObserver = new MutationObserver(() => {
+        for (const child of visualization.children) {
+            resizeObserver.observe(child);
+            mutationObserver.observe(child, {
+                attributes: true,
+                attributeFilter: ["hidden", "class", "style"]
+            });
+        }
+
+        updateCodePanelPosition();
+    });
+
+    mutationObserver.observe(visualization, {
+        childList: true,
+        subtree: true,
+        characterData: true
+    });
+
+    for (const child of visualization.children) {
+        resizeObserver.observe(child);
+        mutationObserver.observe(child, {
+            attributes: true,
+            attributeFilter: ["hidden", "class", "style"]
+        });
+    }
+
+    window.addEventListener("resize", updateCodePanelPosition);
+
+    updateCodePanelPosition();
+})();
+</script>
+
+</body>
 </html>

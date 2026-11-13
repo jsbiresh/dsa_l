@@ -1045,3 +1045,396 @@
     }
 
 }
+
+/* ==================================================
+   DSA_L_CODE_PANEL_TOGGLE
+   Full-width visualization + floating code panel
+================================================== */
+
+/* The main workspace uses one full-width column. */
+.main-workspace {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-width: 0;
+}
+
+/* Keep the sidebar hidden; preserve its DOM for JS. */
+.main-workspace > .sidebar {
+    display: none !important;
+}
+
+/* Visualization occupies the complete workspace. */
+.main-workspace > .visualization-section {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    min-height: 600px;
+}
+
+/* Floating Code Execution panel. */
+.main-workspace > .code-section {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 50;
+
+    width: clamp(320px, 36vw, 520px);
+    height: 300px;
+    max-height: calc(100% - 24px);
+
+    min-width: 0;
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+
+    background: var(--panel-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: 10px;
+
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* Keep the panel header compact. */
+.main-workspace > .code-section > .panel-header {
+    flex: 0 0 52px;
+    min-height: 52px;
+    padding: 8px 12px;
+}
+
+/* Language label and collapse button. */
+.code-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.code-panel-toggle {
+    width: 28px;
+    height: 28px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+
+    font-size: 19px;
+    cursor: pointer;
+}
+
+.code-panel-toggle:hover {
+    border-color: var(--accent-primary);
+}
+
+/* Code toolbar. */
+.main-workspace > .code-section > .code-toolbar {
+    flex: 0 0 34px;
+    min-height: 34px;
+}
+
+/* Editor takes the remaining height. */
+.main-workspace > .code-section > .code-editor {
+    flex: 1 1 auto;
+    height: 0;
+    min-height: 0 !important;
+    overflow: auto;
+}
+
+/* Footer remains visible. */
+.main-workspace > .code-section > .code-footer {
+    flex: 0 0 30px;
+    min-height: 30px;
+}
+
+/* Collapsed state: show only the panel header. */
+.main-workspace > .code-section.is-collapsed {
+    height: 52px !important;
+    max-height: 52px;
+}
+
+.main-workspace > .code-section.is-collapsed > .code-toolbar,
+.main-workspace > .code-section.is-collapsed > .code-editor,
+.main-workspace > .code-section.is-collapsed > .code-footer {
+    display: none !important;
+}
+
+/* Tablet and mobile adjustments. */
+@media (max-width: 700px) {
+    .main-workspace > .code-section {
+        top: 10px;
+        right: 10px;
+
+        width: calc(100% - 20px);
+        max-width: 380px;
+
+        height: 230px;
+    }
+
+    .main-workspace > .visualization-section {
+        min-height: 500px;
+    }
+}
+
+
+/* ================================================
+   DSA_L_CODE_PANEL_HEIGHT_TUNING
+   Lower and enlarge the floating Code Execution panel
+================================================ */
+
+/* Desktop: lower the panel and give the editor room. */
+.main-workspace > .code-section {
+    top: 80px;
+    height: 480px;
+    max-height: calc(100% - 100px);
+}
+
+/* Give the actual code editor meaningful vertical space. */
+.main-workspace > .code-section > .code-editor {
+    flex: 1 1 0%;
+    height: auto;
+    min-height: 160px !important;
+    overflow: auto;
+}
+
+/* Keep live remarks readable without letting them
+   consume all available editor space. */
+.main-workspace > .code-section .live-remarks {
+    flex: 0 1 auto;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+/* Tablet adjustment. */
+@media (max-width: 900px) {
+    .main-workspace > .code-section {
+        top: 55px;
+        height: 420px;
+        max-height: calc(100% - 70px);
+    }
+}
+
+/* Mobile adjustment. */
+@media (max-width: 700px) {
+    .main-workspace > .code-section {
+        top: 35px;
+        right: 10px;
+        height: 380px;
+        max-height: calc(100% - 45px);
+    }
+}
+
+/* ============================================
+   DSA_L — FINAL 70:30 WORKSPACE LAYOUT
+============================================ */
+
+.main-workspace {
+    display: grid !important;
+    grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr) !important;
+    grid-template-rows: minmax(600px, 1fr);
+    align-items: stretch;
+    position: relative;
+    min-width: 0;
+    min-height: 600px;
+    flex: 1 1 auto;
+}
+
+/* No visible navigation sidebar. */
+.main-workspace > .sidebar {
+    display: none !important;
+}
+
+/* LEFT: 70% visualization area */
+.main-workspace > .visualization-section {
+    grid-column: 1;
+    grid-row: 1;
+
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    min-height: 600px;
+    height: auto;
+}
+
+/* RIGHT: 30% code execution area */
+.main-workspace > .code-section {
+    grid-column: 2;
+    grid-row: 1;
+
+    position: relative !important;
+    inset: auto !important;
+
+    width: 100% !important;
+    height: auto !important;
+    min-width: 0;
+    min-height: 600px;
+    max-height: none !important;
+
+    display: flex;
+    flex-direction: column;
+
+    overflow: hidden;
+    box-sizing: border-box;
+    z-index: 1;
+}
+
+/* Code editor uses available vertical space. */
+.main-workspace > .code-section > .code-editor {
+    flex: 1 1 0%;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: auto;
+}
+
+/* Keep execution remarks compact. */
+.main-workspace > .code-section .live-remarks {
+    flex: 0 1 auto;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+/* Remove floating-panel collapse behavior. */
+.main-workspace > .code-section.is-collapsed {
+    height: auto !important;
+    max-height: none !important;
+}
+
+.main-workspace > .code-section.is-collapsed > .code-toolbar,
+.main-workspace > .code-section.is-collapsed > .code-editor,
+.main-workspace > .code-section.is-collapsed > .code-footer {
+    display: flex !important;
+}
+
+/* Small screens: stack panels when 70:30 is impractical. */
+@media (max-width: 700px) {
+    .main-workspace {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: minmax(500px, auto) minmax(400px, auto);
+    }
+
+    .main-workspace > .visualization-section {
+        grid-column: 1;
+        grid-row: 1;
+        min-height: 500px;
+    }
+
+    .main-workspace > .code-section {
+        grid-column: 1;
+        grid-row: 2;
+        min-height: 400px;
+    }
+}
+
+
+
+/* ============================================
+   DSA_L_CODE_PANEL_CANVAS_ALIGNMENT
+============================================ */
+
+.main-workspace {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr) !important;
+    grid-template-rows: minmax(600px, 1fr);
+}
+
+.main-workspace > .sidebar {
+    display: none !important;
+}
+
+.main-workspace > .visualization-section {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+    width: 100%;
+}
+
+/* Code panel begins exactly at the visualization canvas. */
+.main-workspace > .code-section {
+    grid-column: 2;
+    grid-row: 1;
+
+    position: relative !important;
+    inset: auto !important;
+    transform: translateY(var(--code-panel-top, 0px));
+
+    width: 100% !important;
+    height: var(--code-panel-height, 100%) !important;
+    min-width: 0;
+    min-height: 0 !important;
+    max-height: none !important;
+
+    margin: 0 !important;
+    align-self: start;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Editor consumes the available panel height. */
+.main-workspace > .code-section > .code-editor {
+    flex: 1 1 0%;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: auto;
+}
+
+/* Keep remarks readable within the remaining space. */
+.main-workspace > .code-section .live-remarks {
+    flex: 0 1 auto;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+/* Mobile: return to a normal stacked layout. */
+@media (max-width: 700px) {
+    .main-workspace {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: minmax(500px, auto) minmax(400px, auto);
+    }
+
+    .main-workspace > .visualization-section {
+        grid-column: 1;
+        grid-row: 1;
+        min-height: 500px;
+    }
+
+    .main-workspace > .code-section {
+        grid-column: 1;
+        grid-row: 2;
+        transform: none !important;
+        height: auto !important;
+        min-height: 400px !important;
+    }
+
+    .main-workspace > .code-section > .code-editor {
+        height: auto !important;
+        min-height: 200px !important;
+    }
+}
+
+/* Increase Live Execution Remarks height by 20% */
+.main-workspace > .code-section .live-remarks {
+    max-height: 192px !important;
+}
+
+/* LIVE EXECUTION REMARKS — SHOW ALL CONTENT */
+.main-workspace > .code-section .live-remarks {
+    height: auto !important;
+    max-height: none !important;
+    min-height: max-content !important;
+
+    flex: 0 0 auto !important;
+
+    overflow: visible !important;
+    overflow-y: visible !important;
+    overflow-x: visible !important;
+}

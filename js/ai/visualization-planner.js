@@ -36,6 +36,8 @@ import {
 } from "../graphics/models/hash-map-model.js";
 import { buildDeterministicSortingPlan } from "./deterministic-plan-builders.js";
 import { buildDeterministicSearchingPlan } from "./deterministic-search-plan-builders.js";
+import { buildDeterministicBoundSearchPlan } from "./deterministic-advanced-search-plan-builders.js";
+import { buildDeterministicTwoPointerTwoSumPlan } from "./deterministic-two-pointer-two-sum-plan-builder.js";
 
 
 /**
@@ -81,6 +83,30 @@ export async function createVisualizationPlan(
 
     const availableVisualizers = resolveAvailableVisualizers(approach);
 
+
+    // Sorted Two Sum with Two Pointers is fully supported locally.
+    // Route it before Ollama so a model outage cannot block execution.
+    if (
+        approach?.pattern === "Two Pointers" &&
+        /\b(?:two\s*sum|two\s+numbers?\b[\s\S]{0,80}\bsum\b|pair\b[\s\S]{0,80}\bsum\b)/i.test(question)
+    ) {
+        const localPlan = buildDeterministicTwoPointerTwoSumPlan(
+            question,
+            approach,
+            availableVisualizers
+        );
+
+        if (localPlan) {
+            verifyPlanMatchesSelection(localPlan, approach);
+
+            return {
+                ...localPlan,
+                planningSource: "deterministic_fallback",
+                planningWarning: "Two Pointers Two Sum handled by the validated local planner."
+            };
+        }
+    }
+
     // Explicitly named sorting algorithms have validated local builders.
     // Prefer them to model-generated plans for deterministic execution.
     if (/\b(?:bubble|selection|insertion|merge|quick|heap)\s*sort\b/i.test(question)) {
@@ -97,6 +123,25 @@ export async function createVisualizationPlan(
                 ...localPlan,
                 planningSource: "deterministic_fallback",
                 planningWarning: "Explicitly named sorting algorithm handled by the validated local planner."
+            };
+        }
+    }
+
+    // Explicitly named lower and upper bound algorithms use deterministic local plans.
+    if (/\b(?:lower|upper)\s*bound\b/i.test(question)) {
+        const localPlan = buildDeterministicBoundSearchPlan(
+            question,
+            approach,
+            availableVisualizers
+        );
+
+        if (localPlan) {
+            verifyPlanMatchesSelection(localPlan, approach);
+
+            return {
+                ...localPlan,
+                planningSource: "deterministic_fallback",
+                planningWarning: "Explicitly named bound algorithm handled by the validated local planner."
             };
         }
     }
@@ -166,12 +211,22 @@ export async function createVisualizationPlan(
         );
 
         const fallbackPlan =
+            buildDeterministicBoundSearchPlan(
+                question,
+                approach,
+                availableVisualizers
+            ) ||
             buildDeterministicSearchingPlan(
                 question,
                 approach,
                 availableVisualizers
             ) ||
             buildDeterministicSortingPlan(
+                question,
+                approach,
+                availableVisualizers
+            ) ||
+            buildDeterministicTwoPointerTwoSumPlan(
                 question,
                 approach,
                 availableVisualizers
@@ -747,8 +802,34 @@ YOUR RESPONSIBILITIES
 
 7. Clearly distinguish supplied values from generated values.
 
-8. Use approximately 6 to 7 elements for a simple
-   array-based demonstration, when appropriate.
+8. When the original question does not provide explicit
+   input values or an exact input cardinality, generate
+   AT LEAST 8 meaningful data items for the primary input.
+
+   This minimum is mandatory, not optional.
+
+   Apply it to the relevant input structure:
+   - Array: at least 8 elements.
+   - Linked List: at least 8 nodes.
+   - Stack or Queue: at least 8 input items.
+   - Heap: at least 8 elements.
+   - Tree: at least 8 input nodes.
+   - Graph: at least 8 vertices.
+   - Matrix: at least 8 cells.
+   - Hash-based input: at least 8 input entries.
+   - String or sequence: at least 8 characters/items.
+
+   For multiple visualizations, apply the minimum to each
+   primary input structure, not to auxiliary working structures.
+
+   If explicit values or an exact input size are supplied,
+   preserve them exactly. Never pad, truncate, reorder, or
+   replace explicitly supplied input merely to reach 8.
+
+   Do not mistake constraints such as n <= 100000 for an
+   instruction to generate 100000 items.
+
+   Mark generated and explicitly supplied inputs accurately.
 
 9. Generate JavaScript source code representing the
    selected algorithm.

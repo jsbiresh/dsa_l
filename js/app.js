@@ -12,6 +12,7 @@ import { analyzeDSARequest } from "./ai/problem-analyzer.js";
 import { checkOllamaConnection } from "./ai/ollama-client.js";
 import { createVisualizationPlan } from "./ai/visualization-planner.js";
 import { createExecutionTrace } from "./visualization/visualization-runtime.js";
+import { assertMinimumGeneratedInputSize } from "./ai/input-size-policy.js";
 
 /* ============================================
    1. APPLICATION CONFIGURATION
@@ -70,6 +71,11 @@ const elements = {
   codeExecutionStatus: document.getElementById("codeExecutionStatus"),
   codeFileName: document.getElementById("codeFileName"),
   currentLine: document.getElementById("currentLine"),
+
+  liveRemarkStep: document.getElementById("liveRemarkStep"),
+  liveRemarkValues: document.getElementById("liveRemarkValues"),
+  liveRemarkComparison: document.getElementById("liveRemarkComparison"),
+  liveRemarkNarrative: document.getElementById("liveRemarkNarrative"),
 
   playButton: document.getElementById("playButton"),
   pauseButton: document.getElementById("pauseButton"),
@@ -524,6 +530,242 @@ function highlightCodeLine(lineNumber) {
   }
 }
 
+
+function formatRemarkValue(value) {
+  if (typeof value === "string") return value;
+
+  if (value === undefined) return "undefined";
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function getArraySnapshot(step) {
+  if (Array.isArray(step.state?.array)) {
+    return step.state.array;
+  }
+
+  const visualStates = Object.values(step.visualStates || {});
+
+  const arrayVisualState = visualStates.find(
+    item => Array.isArray(item?.state?.array)
+  );
+
+  return arrayVisualState?.state?.array || [];
+}
+
+function renderLiveExecutionRemarks(step) {
+  const variables = step.variables || {};
+  const array = getArraySnapshot(step);
+
+  const position = executionController.getPosition();
+  const action = String(step.action || "EXECUTION")
+    .replaceAll("_", " ");
+
+  elements.liveRemarkStep.textContent =
+    `STEP ${position.currentStep + 1} — ${action}`;
+
+  // Display the actual runtime variables.
+  elements.liveRemarkValues.replaceChildren();
+
+  const addValueCard = (label, value, derived = false) => {
+    const card = document.createElement("div");
+    card.className = derived
+      ? "live-remark-value live-remark-value--derived"
+      : "live-remark-value";
+
+    const title = document.createElement("span");
+    title.className = "live-remark-value-label";
+    title.textContent = label;
+
+    const content = document.createElement("strong");
+    content.className = "live-remark-value-content";
+    content.textContent = formatRemarkValue(value);
+
+    card.append(title, content);
+    elements.liveRemarkValues.appendChild(card);
+  };
+
+  const entries = Object.entries(variables);
+
+  if (entries.length === 0) {
+    const placeholder = document.createElement("span");
+    placeholder.className = "live-remarks-placeholder";
+    placeholder.textContent = "No runtime variables for this step.";
+    elements.liveRemarkValues.appendChild(placeholder);
+  } else {
+    entries.forEach(([key, value]) => {
+      addValueCard(key, value);
+    });
+  }
+
+  // Derive actual array lookups from the execution snapshot.
+  // This works across search, sorting, and other array algorithms.
+  const indexKeys = [
+    "i",
+    "j",
+    "index",
+    "mid",
+    "leftIndex",
+    "rightIndex",
+    "minIndex",
+    "maxIndex",
+    "pivotIndex",
+    "boundary",
+    "low",
+    "high",
+    "start",
+    "end"
+  ];
+
+  const shownIndexes = new Set();
+
+  indexKeys.forEach(key => {
+    const index = variables[key];
+
+    if (
+      !Number.isInteger(index) ||
+      index < 0 ||
+      index >= array.length ||
+      shownIndexes.has(index)
+    ) {
+      return;
+    }
+
+    shownIndexes.add(index);
+
+    const item = array[index];
+    const value =
+      item && typeof item === "object" && "value" in item
+        ? item.value
+        : item;
+
+    addValueCard(`array[${index}]`, value, true);
+  });
+
+  // Build comparisons exclusively from this execution snapshot.
+  // Never infer that equality means an algorithm has finished.
+  const has = key => Object.hasOwn(variables, key);
+
+  const compareValues = (left, right) => {
+    if (Object.is(left, right) || left === right) {
+      return "=";
+    }
+
+    const sameComparableType =
+      typeof left === typeof right &&
+      (typeof left === "number" || typeof left === "string");
+
+    if (!sameComparableType) return "≠";
+
+    if (left < right) return "<";
+    if (left > right) return ">";
+
+    return "≠";
+  };
+
+  let comparison = "";
+
+  // Sorting algorithms: compare the actual adjacent/current values.
+  if (has("left") && has("right")) {
+    const leftLabel = Number.isInteger(variables.leftIndex)
+      ? `array[${variables.leftIndex}]`
+      : "left";
+
+    const rightLabel = Number.isInteger(variables.rightIndex)
+      ? `array[${variables.rightIndex}]`
+      : "right";
+
+    const relation = compareValues(variables.left, variables.right);
+
+    comparison =
+      `Comparing ${leftLabel} = ${formatRemarkValue(variables.left)} ` +
+      `with ${rightLabel} = ${formatRemarkValue(variables.right)}. ` +
+      `Result: ${relation}.`;
+  }
+
+  // Search algorithms: explain the actual current-versus-target relation.
+  else if (has("current") && has("target")) {
+    const relation = compareValues(variables.current, variables.target);
+
+    comparison =
+      `Compare current value ${formatRemarkValue(variables.current)} ` +
+      `with target ${formatRemarkValue(variables.target)}. ` +
+      `Result: current ${relation} target.`;
+  }
+
+  // Pivot-based algorithms.
+  else if (has("current") && has("pivot")) {
+    const relation = compareValues(variables.current, variables.pivot);
+
+    comparison =
+      `Compare current value ${formatRemarkValue(variables.current)} ` +
+      `with pivot ${formatRemarkValue(variables.pivot)}. ` +
+      `Result: current ${relation} pivot.`;
+  }
+
+  // Binary Search, Lower Bound and Upper Bound.
+  // Do not assume whether high is inclusive or exclusive.
+  else if (has("low") || has("high") || has("mid")) {
+    const bounds = [];
+
+    if (has("low")) {
+      bounds.push(`low = ${formatRemarkValue(variables.low)}`);
+    }
+
+    if (has("mid")) {
+      bounds.push(`mid = ${formatRemarkValue(variables.mid)}`);
+    }
+
+    if (has("high")) {
+      bounds.push(`high = ${formatRemarkValue(variables.high)}`);
+    }
+
+    comparison = `Current search boundaries: ${bounds.join(", ")}.`;
+
+    if (Number.isInteger(variables.mid)) {
+      const mid = variables.mid;
+
+      if (mid >= 0 && mid < array.length) {
+        const item = array[mid];
+        const value =
+          item && typeof item === "object" && "value" in item
+            ? item.value
+            : item;
+
+        comparison +=
+          ` Midpoint value: array[${mid}] = ${formatRemarkValue(value)}.`;
+      }
+    }
+  }
+
+  // Single-position operations such as Linear Search or traversal.
+  else {
+    const indexKeys = [
+      "i", "j", "index", "position", "currentIndex",
+      "leftIndex", "rightIndex", "pivotIndex"
+    ];
+
+    const activeIndexes = indexKeys
+      .filter(key => Number.isInteger(variables[key]))
+      .map(key => `${key} = ${variables[key]}`);
+
+    if (activeIndexes.length) {
+      comparison = `Current positions: ${activeIndexes.join(", ")}.`;
+    }
+  }
+
+  elements.liveRemarkComparison.textContent =
+    comparison || "Review the runtime values above for this step.";
+
+  // The plan's own explanation is the source of truth.
+  elements.liveRemarkNarrative.textContent =
+    step.explanation || "No explanation was provided for this step.";
+}
+
 function updateExecutionPosition() {
   const position = executionController.getPosition();
 
@@ -557,13 +799,23 @@ function updateInspector(step) {
   }
 
   if (elements.memoryPanel) {
-    const array = step.state.array;
+    const array = getArraySnapshot(step);
 
-    elements.memoryPanel.textContent = array
-      .map((item, index) => {
-        return "[" + index + "] " + item.value + " (" + item.id + ")";
-      })
-      .join("\n");
+    elements.memoryPanel.textContent = array.length
+      ? array.map((item, index) => {
+          const value =
+            item && typeof item === "object" && "value" in item
+              ? item.value
+              : item;
+
+          const id =
+            item && typeof item === "object"
+              ? item.id || ""
+              : "";
+
+          return `[${index}] ${value}${id ? " (" + id + ")" : ""}`;
+        }).join("\n")
+      : "No array snapshot available for this step.";
   }
 
   if (elements.comparisonCount) {
@@ -585,6 +837,8 @@ function updateInspector(step) {
   if (elements.inspectorStatus) {
     elements.inspectorStatus.textContent = step.action || "EXECUTION";
   }
+
+  renderLiveExecutionRemarks(step);
 }
 
 /* ============================================
@@ -753,6 +1007,8 @@ async function handlePlayAnimation() {
       analysis: currentAnalysis,
       selectedApproach
     });
+
+    assertMinimumGeneratedInputSize(plan, analyzedQuestion);
 
     const trace = createExecutionTrace(plan);
 

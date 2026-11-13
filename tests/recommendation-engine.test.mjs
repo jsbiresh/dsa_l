@@ -41,6 +41,25 @@ assert.ok(patternsFor(sortedTwoSum).includes("Two Pointers"));
 
 console.log("PASS: Sorted Two Sum also recommends Two Pointers.");
 
+// TEST 2B: Concrete nums input and literal target sum.
+const concreteTwoSum =
+  "Given nums = [2, 7, 11, 15], find two numbers whose sum is 9.";
+
+assert.ok(patternsFor(concreteTwoSum).includes("Hashing"));
+assert.ok(!patternsFor(concreteTwoSum).includes("Two Pointers"));
+
+console.log("PASS: Concrete nums input recommends Hashing without assuming sorted constraints.");
+
+// TEST 2C: Concrete input with an explicit sorted guarantee.
+const concreteSortedTwoSum =
+  "Given a sorted array nums = [2, 7, 11, 15], find two numbers whose sum is 9.";
+
+assert.ok(patternsFor(concreteSortedTwoSum).includes("Hashing"));
+assert.ok(patternsFor(concreteSortedTwoSum).includes("Two Pointers"));
+
+console.log("PASS: Concrete sorted Two Sum recommends Hashing and Two Pointers.");
+
+
 // TEST 3: Explicitly unsorted Two Sum.
 const unsortedTwoSum =
   "Given an unsorted array of integers, find two numbers whose sum equals a target.";
