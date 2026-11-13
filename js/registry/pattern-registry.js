@@ -14,6 +14,7 @@ export const PATTERNS = Object.freeze([
     "Difference Array",
     "Hashing",
 
+    "Searching",
     "Binary Search",
     "Binary Search on Answer",
     "Sorting",

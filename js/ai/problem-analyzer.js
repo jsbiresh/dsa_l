@@ -231,13 +231,16 @@ export async function analyzeDSARequest(userRequest, options = {}) {
   // This result remains available even if Ollama fails.
   const ruleAnalysis = generateRuleBasedRecommendations(request);
 
-  // Explicitly named sorting algorithms do not need an AI guess.
+  // Explicitly named sorting and searching algorithms do not need an AI guess.
   // Their local classification is deterministic and registry-validated.
-  const explicitSortingMatch = ruleAnalysis.approaches.find(
-    approach => approach.source === "explicit_named_sorting_algorithm"
+  const explicitAlgorithmMatch = ruleAnalysis.approaches.find(
+    approach => [
+      "explicit_named_sorting_algorithm",
+      "explicit_named_searching_algorithm"
+    ].includes(approach.source)
   );
 
-  if (explicitSortingMatch) {
+  if (explicitAlgorithmMatch) {
     const emptyAnalysis = {
       mode: "problem_solving",
       requestSummary: request,
@@ -254,7 +257,7 @@ export async function analyzeDSARequest(userRequest, options = {}) {
     return {
       ...integrateAnalysis(emptyAnalysis, ruleAnalysis),
       analysisProvider: "deterministic_fallback",
-      analysisWarning: "Explicit sorting algorithm recognized by DSA_L local rules."
+      analysisWarning: "Explicit algorithm recognized by DSA_L local rules."
     };
   }
 

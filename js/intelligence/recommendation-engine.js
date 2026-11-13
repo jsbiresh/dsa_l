@@ -1,4 +1,5 @@
 import { analyzeProblemProperties } from "./problem-property-analyzer.js";
+import { PATTERNS } from "../registry/pattern-registry.js";
 import { matchPatterns } from "./pattern-matcher.js";
 import { recommendDataStructures } from "./structure-recommender.js";
 
@@ -28,13 +29,28 @@ function detectNamedSortingAlgorithm(request) {
   return names[match[1].toLowerCase()] || null;
 }
 
+function detectNamedSearchingAlgorithm(request) {
+  const match = String(request).match(/\b(linear|binary)\s*search\b/i);
+
+  if (!match) return null;
+
+  return match[1].toLowerCase() === "linear"
+    ? "Linear Search"
+    : "Binary Search";
+}
+
 export function generateRuleBasedRecommendations(userRequest) {
   const propertyAnalysis = analyzeProblemProperties(userRequest);
   const namedAlgorithm = detectNamedSortingAlgorithm(userRequest);
+  const namedSearchingAlgorithm = detectNamedSearchingAlgorithm(userRequest);
   const matches = matchPatterns(propertyAnalysis);
 
   // An explicitly named algorithm is stronger evidence than
   // a generic keyword-based pattern classification.
+  const searchPattern = PATTERNS.includes("Searching")
+    ? "Searching"
+    : "Binary Search";
+
   const approaches = namedAlgorithm
     ? [{
         pattern: "Sorting",
@@ -54,16 +70,37 @@ export function generateRuleBasedRecommendations(userRequest) {
         knowledge: [],
         source: "explicit_named_sorting_algorithm"
       }]
-    : matches.map(match => ({
-        pattern: match.pattern,
-        applicability: match.applicability,
-        reason: match.reason,
-        conditions: [...match.conditions],
-        dataStructures: recommendDataStructures(match.structures),
-        evidence: match.evidence,
-        knowledge: match.knowledge,
-        source: match.source
-      }));
+    : namedSearchingAlgorithm
+      ? [{
+          pattern: searchPattern,
+          applicability: "direct",
+          reason: `${namedSearchingAlgorithm} was explicitly requested. DSA_L will use its deterministic local search planner.`,
+          conditions: namedSearchingAlgorithm === "Binary Search"
+            ? ["The input array must already be sorted in ascending or descending order."]
+            : [],
+          dataStructures: [{
+            name: "Array",
+            role: "input",
+            reason: "The array contains the values being searched."
+          }],
+          evidence: [{
+            id: "explicit-named-searching-algorithm",
+            label: "Explicit algorithm selection",
+            evidence: `The request explicitly names ${namedSearchingAlgorithm}.`
+          }],
+          knowledge: [],
+          source: "explicit_named_searching_algorithm"
+        }]
+      : matches.map(match => ({
+          pattern: match.pattern,
+          applicability: match.applicability,
+          reason: match.reason,
+          conditions: [...match.conditions],
+          dataStructures: recommendDataStructures(match.structures),
+          evidence: match.evidence,
+          knowledge: match.knowledge,
+          source: match.source
+        }));
 
   return {
     source: "curated_rule_engine",

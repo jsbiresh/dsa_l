@@ -35,6 +35,7 @@ import {
     hashKey
 } from "../graphics/models/hash-map-model.js";
 import { buildDeterministicSortingPlan } from "./deterministic-plan-builders.js";
+import { buildDeterministicSearchingPlan } from "./deterministic-search-plan-builders.js";
 
 
 /**
@@ -100,6 +101,25 @@ export async function createVisualizationPlan(
         }
     }
 
+    // Explicitly named searching algorithms use validated local builders.
+    if (/\b(?:linear|binary)\s*search\b/i.test(question)) {
+        const localPlan = buildDeterministicSearchingPlan(
+            question,
+            approach,
+            availableVisualizers
+        );
+
+        if (localPlan) {
+            verifyPlanMatchesSelection(localPlan, approach);
+
+            return {
+                ...localPlan,
+                planningSource: "deterministic_fallback",
+                planningWarning: "Explicitly named searching algorithm handled by the validated local planner."
+            };
+        }
+    }
+
     const systemPrompt = buildPlannerSystemPrompt({
         approach,
         availableVisualizers
@@ -146,6 +166,11 @@ export async function createVisualizationPlan(
         );
 
         const fallbackPlan =
+            buildDeterministicSearchingPlan(
+                question,
+                approach,
+                availableVisualizers
+            ) ||
             buildDeterministicSortingPlan(
                 question,
                 approach,
