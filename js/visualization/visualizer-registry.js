@@ -49,9 +49,19 @@ export const VISUALIZER_REGISTRY = Object.freeze([
     {
         id: "stack",
         name: "Stack",
-        supportedStructures: ["Stack", "Call Stack"],
-        status: "planned",
-        features: []
+        supportedStructures: ["Stack"],
+        status: "implemented",
+        features: [
+            "stack-slot-rendering",
+            "top-pointer",
+            "push-animation",
+            "pop-animation",
+            "top-highlighting",
+            "size-indicator",
+            "empty-state",
+            "capacity-indicator",
+            "operation-feedback"
+        ]
     },
     {
         id: "queue",

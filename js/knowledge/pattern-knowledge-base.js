@@ -627,6 +627,62 @@ export const PATTERN_KNOWLEDGE_BASE = Object.freeze({
     ]
   },
 
+  "Stack Operations": {
+    purpose: "Demonstrate Last-In, First-Out (LIFO) operations using a Stack.",
+
+    clues: [
+      "stack operations",
+      "push",
+      "pop",
+      "peek",
+      "top",
+      "stack capacity",
+      "stack overflow",
+      "stack underflow"
+    ],
+
+    useWhen: [
+      "The request asks to demonstrate or explain basic Stack operations.",
+      "Values are inserted and removed from the same end.",
+      "The most recently inserted value must be accessed first."
+    ],
+
+    avoidWhen: [
+      "The actual problem requires a Monotonic Stack algorithm.",
+      "The problem requires FIFO processing rather than LIFO processing.",
+      "The request needs a different algorithm-specific execution model."
+    ],
+
+    conditions: [
+      "Push inserts a value at the top.",
+      "Pop removes only the top item.",
+      "Peek reads the top item without removing it.",
+      "An empty Stack cannot be popped or peeked.",
+      "A bounded Stack cannot exceed its capacity."
+    ],
+
+    structures: ["Stack"],
+
+    strengths: [
+      "Push, pop and peek take O(1) time.",
+      "Models LIFO processing directly.",
+      "Supports recursion, backtracking and depth-first execution."
+    ],
+
+    limitations: [
+      "Only the top item is directly accessible.",
+      "A bounded array-backed Stack has a finite capacity.",
+      "Searching arbitrary values requires traversal."
+    ],
+
+    questionsToAsk: [
+      "Which value is currently at the top?",
+      "Does this operation change the Stack?",
+      "Is the Stack empty or full?",
+      "What must happen when underflow or overflow occurs?"
+    ]
+  },
+
   "In-Place Linked List Reversal": {
     purpose: "Reverse linked-list connections without constructing an entirely new list.",
 

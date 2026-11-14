@@ -3,6 +3,7 @@ import { LinkedListRenderer } from "../renderers/linked-list-renderer.js";
 import { BinaryTreeRenderer } from "../renderers/binary-tree-renderer.js";
 import { GraphRenderer } from "../renderers/graph-renderer.js";
 import { HashMapRenderer } from "../renderers/hash-map-renderer.js";
+import { StackRenderer } from "../renderers/stack-renderer.js";
 import { dispatchAnimationEvents } from "../../visualization/animation-event-dispatcher.js";
 
 const RENDERER_TYPES = Object.freeze({
@@ -11,7 +12,8 @@ const RENDERER_TYPES = Object.freeze({
     tree: BinaryTreeRenderer,
     "binary-tree": BinaryTreeRenderer,
     graph: GraphRenderer,
-    "hash-map": HashMapRenderer
+    "hash-map": HashMapRenderer,
+    stack: StackRenderer
 });
 
 export class VisualizationManager {

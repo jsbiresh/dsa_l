@@ -1438,3 +1438,33 @@
     overflow-y: visible !important;
     overflow-x: visible !important;
 }
+
+
+/* DSA_L_CODE_EDITOR_INDEPENDENT_SCROLL */
+
+/* Desktop: independently scroll the code editor. */
+.main-workspace > .code-section > #codeEditor {
+    flex: 1 1 0px !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+/* Mobile: keep the editor scrollable without expanding indefinitely. */
+@media (max-width: 700px) {
+    .main-workspace > .code-section > #codeEditor {
+        flex: 0 1 auto !important;
+        height: auto !important;
+        min-height: 200px !important;
+        max-height: 320px !important;
+
+        overflow-y: auto !important;
+        overflow-x: auto !important;
+    }
+}

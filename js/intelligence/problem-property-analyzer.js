@@ -126,6 +126,22 @@ const PROPERTY_RULES = Object.freeze([
     ]
   },
   {
+    id: "stackOperationRequest",
+    label: "Basic Stack operations are requested",
+    patterns: [
+      /\bstack\s+operations?\b/i,
+      /\bstack\b[\s\S]{0,80}\b(?:push|pop|peek|top|size|isempty|isfull)\b/i,
+      /\b(?:push|pop|peek|top|isEmpty|isFull)\s*\(/i,
+      /\b(?:explain|demonstrate|show|teach|visualize|implement)\b[\s\S]{0,80}\bstack\b/i
+    ],
+    excludePatterns: [
+      /\bmonotonic\s+stack\b/i,
+      /\bnext\s+(?:greater|smaller)\b/i,
+      /\bprevious\s+(?:greater|smaller)\b/i
+    ]
+  },
+
+  {
     id: "nextGreater",
     label: "Next greater or smaller element is required",
     patterns: [

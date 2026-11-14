@@ -942,8 +942,13 @@ async function handleProblemAnalysis() {
       analysis.analysisProvider === "deterministic_fallback";
 
     if (usedFallback && analysis.recommendationStatus === "curated") {
-      elements.analysisStatus.textContent =
-        "Analysis completed using curated local rules. Qwen was unavailable.";
+      const qwenUnavailable =
+        /Qwen analysis unavailable/i.test(analysis.analysisWarning || "");
+
+      elements.analysisStatus.textContent = qwenUnavailable
+        ? "Analysis completed using curated local rules. Qwen was unavailable."
+        : "Analysis completed using deterministic local rules.";
+
       elements.aiStatus.textContent =
         "AI: Local rules active";
     } else if (usedFallback) {

@@ -24,6 +24,7 @@ import {
 } from "../graphics/models/hash-map-model.js";
 
 import { validateAnimationEvents } from "./animation-event-contract.js";
+import { validateStackState } from "../graphics/models/stack-model.js";
 
 
 export const PLAN_CONFIG = Object.freeze({
@@ -58,6 +59,19 @@ const VISUALIZER_OPERATIONS = Object.freeze({
         update: ["entry-update", "active-entry-highlighting"],
         delete: ["entry-deletion", "active-entry-highlighting"],
         complete: ["bucket-rendering", "entry-rendering"]
+    },
+
+    stack: {
+        render: ["stack-slot-rendering", "top-pointer"],
+        push: ["stack-slot-rendering", "top-pointer", "push-animation"],
+        pop: ["stack-slot-rendering", "top-pointer", "pop-animation"],
+        peek: ["stack-slot-rendering", "top-pointer", "top-highlighting"],
+        size: ["stack-slot-rendering", "size-indicator"],
+        isEmpty: ["stack-slot-rendering", "empty-state"],
+        isFull: ["stack-slot-rendering", "capacity-indicator"],
+        overflow: ["stack-slot-rendering", "capacity-indicator", "operation-feedback"],
+        underflow: ["stack-slot-rendering", "empty-state", "operation-feedback"],
+        complete: ["stack-slot-rendering", "top-pointer"]
     },
 
     "linked-list": {
@@ -592,6 +606,16 @@ function validateSteps(
 ============================================ */
 
 function validateVisualState(visualizerId, state) {
+    if (visualizerId === "stack") {
+        try {
+            validateStackState(state);
+        } catch (error) {
+            fail(`Invalid Stack state: ${error.message}`);
+        }
+
+        return;
+    }
+
     if (visualizerId === "array") {
         if (!Array.isArray(state.array)) {
             fail("Array visualization requires state.array.");

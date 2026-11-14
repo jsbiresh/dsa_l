@@ -88,6 +88,33 @@ const MATCH_RULES = Object.freeze([
   },
 
   {
+    pattern: "Stack Operations",
+
+    requires: ["stackOperationRequest"],
+
+    reason:
+      "A Stack follows Last-In, First-Out order. Push, pop and peek operate at the top, making a Stack the direct structure for this walkthrough.",
+
+    conditions: [
+      "Push inserts a value at the top.",
+      "Pop removes the most recently inserted value.",
+      "Peek reads the top value without removing it.",
+      "An empty Stack produces underflow for pop and peek.",
+      "A bounded Stack produces overflow when capacity is reached."
+    ],
+
+    structures: [
+      {
+        name: "Stack",
+        role: "primary",
+        reason:
+          "The Stack is the main structure being demonstrated. Its items, top index, size and capacity are tracked in every execution snapshot."
+      }
+    ]
+  },
+
+
+  {
     pattern: "Breadth-First Search (BFS)",
 
     requires: ["graphInput", "shortestPath", "unweightedGraph"],

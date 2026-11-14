@@ -36,6 +36,7 @@ export const PATTERNS = Object.freeze([
     "Union-Find",
 
     "Monotonic Stack",
+    "Stack Operations",
     "Monotonic Queue",
     "Heap / Priority Queue",
 

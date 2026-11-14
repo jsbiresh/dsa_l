@@ -234,10 +234,12 @@ export async function analyzeDSARequest(userRequest, options = {}) {
   // Explicitly named sorting and searching algorithms do not need an AI guess.
   // Their local classification is deterministic and registry-validated.
   const explicitAlgorithmMatch = ruleAnalysis.approaches.find(
-    approach => [
-      "explicit_named_sorting_algorithm",
-      "explicit_named_searching_algorithm"
-    ].includes(approach.source)
+    approach =>
+      [
+        "explicit_named_sorting_algorithm",
+        "explicit_named_searching_algorithm"
+      ].includes(approach.source) ||
+      approach.pattern === "Stack Operations"
   );
 
   if (explicitAlgorithmMatch) {
@@ -257,7 +259,9 @@ export async function analyzeDSARequest(userRequest, options = {}) {
     return {
       ...integrateAnalysis(emptyAnalysis, ruleAnalysis),
       analysisProvider: "deterministic_fallback",
-      analysisWarning: "Explicit algorithm recognized by DSA_L local rules."
+      analysisWarning: explicitAlgorithmMatch.pattern === "Stack Operations"
+        ? "Stack operations recognized by DSA_L local rules."
+        : "Explicit algorithm recognized by DSA_L local rules."
     };
   }
 
