@@ -146,7 +146,11 @@ export class StateRecorder {
 
             visualStates: step.visualStates
                 ? cloneState(step.visualStates)
-                : null
+                : null,
+
+            animationEvents: cloneState(
+                step.animationEvents ?? []
+            )
 
         };
 

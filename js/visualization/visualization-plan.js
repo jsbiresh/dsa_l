@@ -23,6 +23,8 @@ import {
     validateHashMapState
 } from "../graphics/models/hash-map-model.js";
 
+import { validateAnimationEvents } from "./animation-event-contract.js";
+
 
 export const PLAN_CONFIG = Object.freeze({
     schemaVersion: 1,
@@ -545,6 +547,23 @@ function validateSteps(
 
         }
 
+        let animationEvents;
+
+        try {
+            animationEvents = validateAnimationEvents(
+                step.animationEvents === undefined
+                    ? []
+                    : step.animationEvents,
+                new Set(visualizationMap.keys()),
+                index
+            );
+        } catch (error) {
+            fail(
+                `Execution step ${index} has invalid animation events: ${error.message}`,
+                "INVALID_ANIMATION_EVENTS"
+            );
+        }
+
         return {
 
             action: step.action,
@@ -557,7 +576,9 @@ function validateSteps(
 
             metrics: deepClone(step.metrics || {}),
 
-            visualStates
+            visualStates,
+
+            animationEvents
 
         };
 

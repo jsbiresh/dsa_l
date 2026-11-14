@@ -3,6 +3,7 @@ import { LinkedListRenderer } from "../renderers/linked-list-renderer.js";
 import { BinaryTreeRenderer } from "../renderers/binary-tree-renderer.js";
 import { GraphRenderer } from "../renderers/graph-renderer.js";
 import { HashMapRenderer } from "../renderers/hash-map-renderer.js";
+import { dispatchAnimationEvents } from "../../visualization/animation-event-dispatcher.js";
 
 const RENDERER_TYPES = Object.freeze({
     array: ArrayRenderer,
@@ -159,11 +160,21 @@ export class VisualizationManager {
                         );
                     }
 
-                    return this.render(
-                        id,
-                        visualState.state,
-                        visualState.metadata || {},
-                        options
+                    const events = Array.isArray(step.animationEvents)
+                        ? step.animationEvents.filter(
+                            event =>
+                                event.target.visualizationId === id
+                        )
+                        : [];
+
+                    return dispatchAnimationEvents(
+                        this.getRenderer(id),
+                        {
+                            events,
+                            state: visualState.state,
+                            metadata: visualState.metadata || {},
+                            options
+                        }
                     );
                 }
             );
@@ -174,10 +185,21 @@ export class VisualizationManager {
 
         // Existing single-array execution format.
         if (step.state) {
-            return this.renderPrimary(
-                step.state,
-                step.metadata || {},
-                options
+            const events = Array.isArray(step.animationEvents)
+                ? step.animationEvents.filter(
+                    event =>
+                        event.target.visualizationId === this.primaryId
+                )
+                : [];
+
+            return dispatchAnimationEvents(
+                this.getRenderer(this.primaryId),
+                {
+                    events,
+                    state: step.state,
+                    metadata: step.metadata || {},
+                    options
+                }
             );
         }
 

@@ -47,6 +47,10 @@ export function createExecutionTrace(rawPlan) {
         return {
             action: step.action,
 
+            animationEvents: structuredClone(
+                step.animationEvents ?? []
+            ),
+
             // Compatibility alias for existing inspectors and array traces.
             state: structuredClone(
                 visualStates[primaryVisualization.id].state
